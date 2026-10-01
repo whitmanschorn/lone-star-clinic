@@ -214,8 +214,10 @@ SUMMARY_PROVIDER=auto    # auto | template | deepseek | openai | anthropic
   details and address are not sent, and prompts are never logged. `SUMMARY_PROVIDER=template`
   turns LLM summaries off whatever keys are set, and no request can override it. The sample
   data is fictional; real patient data would need an agreement with the provider first.
-- **Not verified live:** the DeepSeek path was run against the real API. The OpenAI and
-  Anthropic paths are covered by unit tests with a fake client only, as no key was available.
+- **What was verified:** the DeepSeek path was run against the real API. No OpenAI or
+  Anthropic key was available, so those two paths have their default model ids checked
+  against the providers' documentation and their requests covered by unit tests with a fake
+  client, but have not been run live.
 
 Dates in the narrative use the clinic's time zone (`CLINIC_TIMEZONE`).
 
