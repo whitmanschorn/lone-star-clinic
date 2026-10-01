@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { API_URL, createPatient, deletePatient } from '../helpers'
+import { API_URL, createPatient, deletePatient, holdRequests } from '../helpers'
 import type { Note, Patient, PatientsPage } from '../types'
 
 // Working from the patient list: create, edit and add notes in modals, and
@@ -157,37 +157,27 @@ test.describe('working on an existing patient from the list', () => {
   test('shows the saved row at once, marked as updating until the refetch lands', async ({
     page,
   }) => {
-    // Hold back list requests so the "stale, revalidating" state can be seen.
-    let slow = false
-    let releases: (() => void)[] = []
-    await page.route('**/api/patients?*', async (route) => {
-      if (slow) await new Promise<void>((resolve) => releases.push(resolve))
-      await route.continue()
-    })
+    // Pause list requests so the "stale, revalidating" state can be looked at.
+    const listRequests = await holdRequests(page, '**/api/patients?*')
+    const updating = page.getByRole('status').filter({ hasText: 'Updating…' })
 
     await page.getByRole('button', { name: `Edit Rowdy ${patient.last_name}` }).click()
     const dialog = page.getByRole('dialog', { name: `Edit Rowdy ${patient.last_name}` })
     await dialog.getByLabel('First name').fill('Rowena')
-    slow = true
+    listRequests.hold()
     await dialog.getByRole('button', { name: 'Save changes' }).click()
     await expect(dialog).toBeHidden()
 
     // Stale-while-revalidate: the row already shows the server's copy of the
-    // edit, from the cache, while the list request is still in flight.
-    await expect(patientRows(page).first().getByRole('link')).toHaveText(
-      `Rowena ${patient.last_name}`,
-    )
-    await expect(page.getByRole('status').filter({ hasText: 'Updating…' })).toBeVisible()
-    expect(releases.length).toBeGreaterThan(0)
+    // edit, from the cache, while the list request is still unanswered.
+    const name = patientRows(page).first().getByRole('link')
+    await expect(name).toHaveText(`Rowena ${patient.last_name}`)
+    await expect(updating).toBeVisible()
 
-    // Once the refetch lands, the indicator goes away.
-    slow = false
-    releases.forEach((release) => release())
-    releases = []
-    await expect(page.getByRole('status').filter({ hasText: 'Updating…' })).toHaveCount(0)
-    await expect(patientRows(page).first().getByRole('link')).toHaveText(
-      `Rowena ${patient.last_name}`,
-    )
+    // Once the refetch lands, the indicator goes away and the row stays.
+    listRequests.release()
+    await expect(updating).toHaveCount(0)
+    await expect(name).toHaveText(`Rowena ${patient.last_name}`)
   })
 
   test('the edit form starts from the latest record, not the stale row', async ({
@@ -319,12 +309,10 @@ test('the patient page edits in a modal too, and updates in place', async ({ pag
 })
 
 test.describe('working from the list on a phone', () => {
-  test('cards show the last note and open the same modals @mobile', async ({
+  test('cards show the last note and open the same modals @mobile-only', async ({
     page,
     request,
-    isMobile,
   }) => {
-    test.skip(!isMobile, 'Cards replace the table only on narrow screens')
     const patient = await createPatient(request, { first_name: 'Rowdy' })
     try {
       await page.goto('/patients')

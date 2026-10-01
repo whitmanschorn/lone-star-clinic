@@ -14,15 +14,27 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
+  // Generous limits: the suite should pass on a busy laptop, not only a fast one.
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   use: {
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    // The app turns its animations off for "reduce motion", so tests never
+    // have to time themselves against a modal sliding in or out.
+    contextOptions: { reducedMotion: 'reduce' },
   },
   projects: [
     // API tests talk straight to FastAPI through Playwright's request fixture.
     { name: 'api', testDir: 'e2e/api', use: { baseURL: apiURL } },
-    { name: 'desktop', testDir: 'e2e/ui', use: { ...devices['Desktop Chrome'], baseURL: webURL } },
-    // The mobile project runs only the tests tagged @mobile.
+    // Desktop runs everything except the tests that only make sense on a phone.
+    {
+      name: 'desktop',
+      testDir: 'e2e/ui',
+      grepInvert: /@mobile-only/,
+      use: { ...devices['Desktop Chrome'], baseURL: webURL },
+    },
+    // Mobile runs the tests tagged @mobile (also run on desktop) or @mobile-only.
     {
       name: 'mobile',
       testDir: 'e2e/ui',

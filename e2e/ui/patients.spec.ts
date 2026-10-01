@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { createPatient, deletePatient } from '../helpers'
+import { createPatient, deletePatient, holdRequests } from '../helpers'
 
 /** Table rows that hold a patient (i.e. not the header row). */
 function patientRows(page: Page) {
@@ -64,15 +64,10 @@ test.describe('patient list', () => {
   })
 
   test('typing stays responsive while results are loading', async ({ page }) => {
-    // Hold every search response back until the test lets it go.
-    let release = () => {}
-    const held = new Promise<void>((resolve) => (release = resolve))
-    await page.route('**/api/patients?*q=*', async (route) => {
-      await held
-      await route.continue()
-    })
+    const searches = await holdRequests(page, '**/api/patients?*q=*')
     const search = page.getByRole('textbox', { name: 'Search patients' })
 
+    searches.hold()
     const searching = page.waitForRequest('**/api/patients?*q=lefty*')
     await search.fill('lefty')
     await searching
@@ -88,7 +83,7 @@ test.describe('patient list', () => {
     await search.pressSequentially(' mc')
     await expect(search).toHaveValue('lefty mc')
 
-    release()
+    searches.release()
     await expect(patientRows(page)).toHaveCount(1)
     await expect(page.getByRole('link', { name: 'Lefty McGraw' })).toBeVisible()
   })
@@ -96,12 +91,8 @@ test.describe('patient list', () => {
   test('keeps the rows on screen while a different filter, sort or page loads', async ({
     page,
   }) => {
-    let holding = false
-    let release = () => {}
-    await page.route('**/api/patients?*', async (route) => {
-      if (holding) await new Promise<void>((resolve) => (release = resolve))
-      await route.continue()
-    })
+    const listRequests = await holdRequests(page, '**/api/patients?*')
+    const updating = page.getByRole('status').filter({ hasText: 'Updating…' })
 
     const changes: [string, () => Promise<void>][] = [
       [
@@ -116,18 +107,16 @@ test.describe('patient list', () => {
       const before = await patientRows(page).count()
       expect(before, what).toBeGreaterThan(0)
 
-      holding = true
-      const requested = page.waitForRequest('**/api/patients?*')
+      listRequests.hold()
       await change()
-      await requested
 
-      // Mid-request: same rows, dimmed, never the loading placeholders.
+      // Mid-request: the same rows, marked as updating, never the placeholders.
+      await expect(updating, what).toBeVisible()
       await expect(patientRows(page), what).toHaveCount(before)
       await expect(page.getByLabel('Loading patients'), what).toHaveCount(0)
 
-      holding = false
-      release()
-      await expect(page.getByRole('status').filter({ hasText: 'Updating…' }), what).toHaveCount(0)
+      listRequests.release()
+      await expect(updating, what).toHaveCount(0)
     }
   })
 
@@ -303,11 +292,7 @@ test.describe('patient detail', () => {
 })
 
 test.describe('patient list on a phone', () => {
-  test('shows cards, and search, filter and paging still work @mobile', async ({
-    page,
-    isMobile,
-  }) => {
-    test.skip(!isMobile, 'Cards replace the table only on narrow screens')
+  test('shows cards, and search, filter and paging still work @mobile-only', async ({ page }) => {
     await page.goto('/patients')
     const cards = page.getByRole('list', { name: 'Patients' }).getByRole('listitem')
 
@@ -329,8 +314,7 @@ test.describe('patient list on a phone', () => {
     await expect(page.getByRole('heading', { name: 'Tex Holloway' })).toBeVisible()
   })
 
-  test('sorts from the sort picker @mobile', async ({ page, isMobile }) => {
-    test.skip(!isMobile, 'The sort picker replaces column headers only on narrow screens')
+  test('sorts from the sort picker @mobile-only', async ({ page }) => {
     await page.goto('/patients')
     const cards = page.getByRole('list', { name: 'Patients' }).getByRole('listitem')
 

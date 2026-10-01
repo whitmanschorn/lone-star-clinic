@@ -40,8 +40,7 @@ test('header navigation moves between the dashboard and the patient list', async
   await expect(page).toHaveURL('/')
 })
 
-test('on a phone the navigation lives in a drawer @mobile', async ({ page, isMobile }) => {
-  test.skip(!isMobile, 'The burger menu only exists on narrow screens')
+test('on a phone the navigation lives in a drawer @mobile-only', async ({ page }) => {
   await page.goto('/')
   const drawerNav = page.getByRole('navigation', { name: 'Main' })
 

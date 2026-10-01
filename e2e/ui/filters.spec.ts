@@ -368,8 +368,7 @@ test.describe('the list view lives in the URL', () => {
   })
 })
 
-test('filters work on a phone, where the panel stacks @mobile', async ({ page, isMobile }) => {
-  test.skip(!isMobile, 'Covered on desktop by the tests above')
+test('filters work on a phone, where the panel stacks @mobile-only', async ({ page }) => {
   await page.goto('/patients')
   const cards = page.getByRole('list', { name: 'Patients' }).getByRole('listitem')
   await expect(cards).toHaveCount(20)

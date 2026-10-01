@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { APIRequestContext } from '@playwright/test'
+import type { APIRequestContext, Page } from '@playwright/test'
 import type { Patient, PatientCreate } from './types'
 
 /** Where the FastAPI server lives. UI tests use this to set up their own data. */
@@ -44,4 +44,30 @@ export async function createPatient(
 
 export async function deletePatient(request: APIRequestContext, id: string): Promise<void> {
   await request.delete(`${API_URL}/patients/${id}`)
+}
+
+/**
+ * Lets a test pause requests to `url` and let them go again, to look at the
+ * page while a response is outstanding. Every paused request waits on the same
+ * gate, so releasing it frees all of them, however many there are and whenever
+ * they arrived.
+ */
+export async function holdRequests(page: Page, url: string | RegExp) {
+  let gate: Promise<void> | null = null
+  let open = () => {}
+  await page.route(url, async (route) => {
+    if (gate) await gate
+    await route.continue()
+  })
+  return {
+    hold() {
+      gate = new Promise<void>((resolve) => {
+        open = resolve
+      })
+    },
+    release() {
+      open()
+      gate = null
+    },
+  }
 }

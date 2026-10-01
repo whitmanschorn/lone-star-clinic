@@ -18,6 +18,8 @@ export const theme = createTheme({
   primaryColor: 'saddle',
   primaryShade: 7,
   colors: { saddle },
+  // No transitions or animations for people who ask their system for less motion.
+  respectReducedMotion: true,
   headings: {
     fontFamily: "'Zilla Slab', Georgia, serif",
     fontWeight: '600',

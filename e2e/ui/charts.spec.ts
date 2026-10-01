@@ -207,8 +207,7 @@ test.describe('reading the charts without relying on colour or hover', () => {
     )
   })
 
-  test('bar colours change with the colour scheme', async ({ page, isMobile }) => {
-    test.skip(isMobile, 'On a phone the toggle is in the navigation drawer')
+  test('bar colours change with the colour scheme', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' })
     await page.goto('/')
     const bar = chart(page, 'Most common conditions')
@@ -222,8 +221,7 @@ test.describe('reading the charts without relying on colour or hover', () => {
   })
 })
 
-test('the charts fit a phone screen @mobile', async ({ page, isMobile }) => {
-  test.skip(!isMobile, 'Layout check for narrow screens')
+test('the charts fit a phone screen @mobile-only', async ({ page }) => {
   await page.goto('/')
 
   await expect(

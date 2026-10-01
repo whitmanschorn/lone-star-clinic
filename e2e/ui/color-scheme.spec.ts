@@ -15,8 +15,7 @@ async function backgroundBrightness(page: Page): Promise<number> {
 test.describe('with a light system setting', () => {
   test.use({ colorScheme: 'light' })
 
-  test('starts light, switches to dark, and remembers the choice', async ({ page, isMobile }) => {
-    test.skip(isMobile, 'On a phone the toggle is in the navigation drawer')
+  test('starts light, switches to dark, and remembers the choice', async ({ page }) => {
     await page.goto('/')
     await expect(scheme(page)).toHaveAttribute('data-mantine-color-scheme', 'light')
     expect(await backgroundBrightness(page)).toBeGreaterThan(200)
@@ -43,8 +42,7 @@ test.describe('with a light system setting', () => {
 test.describe('with a dark system setting', () => {
   test.use({ colorScheme: 'dark' })
 
-  test('follows the system until the user chooses', async ({ page, isMobile }) => {
-    test.skip(isMobile, 'On a phone the toggle is in the navigation drawer')
+  test('follows the system until the user chooses', async ({ page }) => {
     await page.goto('/')
     await expect(scheme(page)).toHaveAttribute('data-mantine-color-scheme', 'dark')
     expect(await backgroundBrightness(page)).toBeLessThan(60)
@@ -75,8 +73,7 @@ test.describe('with a dark system setting', () => {
   })
 })
 
-test('on a phone the switch is in the navigation drawer @mobile', async ({ page, isMobile }) => {
-  test.skip(!isMobile, 'The drawer only exists on narrow screens')
+test('on a phone the switch is in the navigation drawer @mobile-only', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' })
   await page.goto('/')
   // The closed drawer is off-screen rather than removed.
