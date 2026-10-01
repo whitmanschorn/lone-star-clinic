@@ -1,0 +1,47 @@
+# A Location header from the API, such as "/patients/123" after a 201, as the
+# browser should see it: "/api/patients/123". Empty when the API sent none.
+map $upstream_http_location $api_location {
+    ""        "";
+    ~^/(.*)$  /api/$1;
+    default   $upstream_http_location;
+}
+
+server {
+    listen 8080;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    # The app calls the API at /api/...; forward those to the backend with the
+    # prefix removed (the trailing slash on proxy_pass does that).
+    location /api/ {
+        proxy_pass ${API_UPSTREAM}/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # Location headers from the API get the /api prefix back (see the map
+        # above). proxy_redirect is not used for this because it would make
+        # them absolute, with this server's internal host and port.
+        proxy_redirect off;
+        proxy_hide_header Location;
+        add_header Location $api_location always;
+    }
+
+    # Vite gives built assets content-hashed names, so they can be cached forever.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # Single-page app: any other path is handled by the client-side router.
+    location / {
+        add_header Cache-Control "no-cache";
+        try_files $uri $uri/ /index.html;
+    }
+}
