@@ -1,12 +1,34 @@
 import { expect, test } from '@playwright/test'
 
-test('the header shows the clinic name and a healthy API @mobile', async ({ page }) => {
+test('shows the clinic name, and a healthy API at the bottom left', async ({ page }) => {
   await page.goto('/')
 
   await expect(page).toHaveTitle('Lone Star Clinic')
   await expect(page.getByRole('heading', { name: 'Lone Star Clinic' })).toBeVisible()
   // "API online" is only rendered once GET /api/health has answered through the proxy.
-  await expect(page.getByText('API online')).toBeVisible()
+  const status = page.getByText('API online')
+  await expect(status).toBeInViewport()
+
+  // It sits at the foot of the sidebar: left edge of the window, lower half.
+  const box = (await status.boundingBox())!
+  const viewport = page.viewportSize()!
+  expect(box.x).toBeLessThan(240)
+  expect(box.y).toBeGreaterThan(viewport.height / 2)
+  // And no longer in the header.
+  await expect(page.getByRole('banner').getByText('API online')).toHaveCount(0)
+})
+
+test('on a phone the API status is at the bottom of the drawer @mobile-only', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Lone Star Clinic' })).toBeVisible()
+  const status = page.getByText('API online')
+  await expect(status).not.toBeInViewport()
+
+  await page.getByRole('button', { name: 'Open navigation' }).click()
+
+  await expect(status).toBeInViewport()
+  const box = (await status.boundingBox())!
+  expect(box.y).toBeGreaterThan(page.viewportSize()!.height / 2)
 })
 
 test('the status badge reports an unreachable API', async ({ page }) => {

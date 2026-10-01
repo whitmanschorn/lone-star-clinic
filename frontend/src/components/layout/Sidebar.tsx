@@ -12,6 +12,7 @@ import { usePatientStats } from '../../api/hooks'
 import type { PatientStatus } from '../../api/types'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { selectPatientList, statusChanged } from '../../store/patientListSlice'
+import { ApiStatus } from '../ApiStatus'
 import { ColorSchemeNavItem } from '../ColorSchemeToggle'
 
 interface StatusShortcut {
@@ -44,54 +45,61 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     status === null ? stats?.total : stats?.by_status[status]
 
   return (
-    <Stack gap="lg">
-      {/* On wide screens these two links live in the header instead. */}
-      <Box component="nav" aria-label="Main" hiddenFrom="sm">
-        <NavLink
-          component={Link}
-          to="/"
-          label="Dashboard"
-          leftSection={<IconLayoutDashboard size={18} />}
-          active={onDashboard}
-          onClick={onNavigate}
-        />
-        <NavLink
-          component={Link}
-          to="/patients"
-          label="Patients"
-          leftSection={<IconUsers size={18} />}
-          active={onAnyPatientPage}
-          onClick={onNavigate}
-        />
-      </Box>
-
-      <Box component="nav" aria-label="Patients by status">
-        <Text size="xs" fw={700} c="dimmed" tt="uppercase" mb={4} px="sm">
-          Patients by status
-        </Text>
-        {STATUS_SHORTCUTS.map(({ status, label, icon: ShortcutIcon }) => (
+    // Full height, so the API status can sit at the bottom of the sidebar.
+    <Stack h="100%" justify="space-between" gap="lg">
+      <Stack gap="lg">
+        {/* On wide screens these two links live in the header instead. */}
+        <Box component="nav" aria-label="Main" hiddenFrom="sm">
           <NavLink
-            key={label}
+            component={Link}
+            to="/"
+            label="Dashboard"
+            leftSection={<IconLayoutDashboard size={18} />}
+            active={onDashboard}
+            onClick={onNavigate}
+          />
+          <NavLink
             component={Link}
             to="/patients"
-            label={label}
-            leftSection={<ShortcutIcon size={18} />}
-            rightSection={
-              <Badge variant="light" color="gray" size="sm">
-                {countFor(status) ?? '…'}
-              </Badge>
-            }
-            active={onPatientList && currentStatus === status}
-            onClick={() => {
-              dispatch(statusChanged(status))
-              onNavigate()
-            }}
+            label="Patients"
+            leftSection={<IconUsers size={18} />}
+            active={onAnyPatientPage}
+            onClick={onNavigate}
           />
-        ))}
-      </Box>
+        </Box>
 
-      <Box hiddenFrom="sm">
-        <ColorSchemeNavItem />
+        <Box component="nav" aria-label="Patients by status">
+          <Text size="xs" fw={700} c="dimmed" tt="uppercase" mb={4} px="sm">
+            Patients by status
+          </Text>
+          {STATUS_SHORTCUTS.map(({ status, label, icon: ShortcutIcon }) => (
+            <NavLink
+              key={label}
+              component={Link}
+              to="/patients"
+              label={label}
+              leftSection={<ShortcutIcon size={18} />}
+              rightSection={
+                <Badge variant="light" color="gray" size="sm">
+                  {countFor(status) ?? '…'}
+                </Badge>
+              }
+              active={onPatientList && currentStatus === status}
+              onClick={() => {
+                dispatch(statusChanged(status))
+                onNavigate()
+              }}
+            />
+          ))}
+        </Box>
+
+        <Box hiddenFrom="sm">
+          <ColorSchemeNavItem />
+        </Box>
+      </Stack>
+
+      <Box px="sm">
+        <ApiStatus />
       </Box>
     </Stack>
   )
