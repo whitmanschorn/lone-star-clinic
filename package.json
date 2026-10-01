@@ -1,0 +1,23 @@
+{
+  "name": "lone-star-clinic",
+  "private": true,
+  "description": "Repo-level tooling: end-to-end tests, type generation and dev shortcuts.",
+  "type": "module",
+  "scripts": {
+    "db": "docker compose up -d db",
+    "api": "cd backend && .venv/bin/python -m app.prestart && .venv/bin/uvicorn app.main:app --reload --port 8000",
+    "web": "npm --prefix frontend run dev",
+    "gen:types": "cd backend && .venv/bin/python -m app.export_openapi > ../frontend/openapi.json && cd .. && openapi-typescript frontend/openapi.json -o frontend/src/api/schema.d.ts",
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=desktop --project=mobile",
+    "typecheck": "npm --prefix frontend run typecheck && tsc -p e2e",
+    "lint": "npm --prefix frontend run lint && npm --prefix frontend run format:check && cd backend && .venv/bin/ruff check . && .venv/bin/ruff format --check ."
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.3",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3"
+  }
+}

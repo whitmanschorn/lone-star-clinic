@@ -1,0 +1,22 @@
+# Local environment
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+
+# Generated on the way to frontend/src/api/schema.d.ts
+frontend/openapi.json
+
+# Playwright
+test-results/
+playwright-report/
+
+.DS_Store
