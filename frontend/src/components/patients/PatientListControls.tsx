@@ -3,7 +3,6 @@ import {
   Badge,
   Button,
   CloseButton,
-  Collapse,
   Group,
   Loader,
   SegmentedControl,
@@ -139,7 +138,9 @@ export function PatientListControls({ busy, showSort }: PatientListControlsProps
         )}
       </Group>
 
-      <Collapse expanded={filtersOpened}>
+      {/* Mounted only while open: closing it discards a half-edited draft, and
+          a closed panel is truly gone for keyboard and screen-reader users. */}
+      {filtersOpened && (
         <PatientFilterPanel
           filters={filters}
           onApply={(next) => {
@@ -147,7 +148,7 @@ export function PatientListControls({ busy, showSort }: PatientListControlsProps
             closeFilters()
           }}
         />
-      </Collapse>
+      )}
 
       <ActiveFilters
         filters={filters}

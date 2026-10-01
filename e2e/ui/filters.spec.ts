@@ -17,12 +17,24 @@ function address(page: Page): string {
   return url.pathname + url.search
 }
 
+/** Open the filter panel if it is not open already (the button is a toggle). */
 async function openFilters(page: Page) {
-  await page.getByRole('button', { name: /^Filters/ }).click()
-  return page.getByRole('form', { name: 'Filters' })
+  const button = page.getByRole('button', { name: /^Filters/ })
+  if ((await button.getAttribute('aria-expanded')) !== 'true') await button.click()
+  const panel = page.getByRole('form', { name: 'Filters' })
+  await expect(panel).toBeVisible()
+  return panel
 }
 
 const activeFilters = (page: Page) => page.getByRole('group', { name: 'Active filters' })
+
+/**
+ * Wait until no list request is in flight. While one is, the previous rows
+ * stay on screen, so anything read before this may be the old result.
+ */
+async function listSettled(page: Page) {
+  await expect(page.getByRole('status').filter({ hasText: 'Updating…' })).toHaveCount(0)
+}
 
 test.describe('advanced filters', () => {
   test.beforeEach(async ({ page }) => {
@@ -39,7 +51,9 @@ test.describe('advanced filters', () => {
     ]
     for (const [label, value, chip, patient] of cases) {
       const panel = await openFilters(page)
+      // Clearing applies "no filters" and closes the panel; open it again.
       await panel.getByRole('button', { name: 'Clear filters' }).click()
+      await expect(panel).toBeHidden()
       await openFilters(page)
       await panel.getByLabel(label).fill(value)
       // Enter applies, like any form.
@@ -73,6 +87,7 @@ test.describe('advanced filters', () => {
     expect(expected.total).toBeGreaterThan(0)
     await expect(patientRows(page)).toHaveCount(Math.min(expected.total, 20))
     await expect(page.getByText(new RegExp(` of ${expected.total}$`))).toBeVisible()
+    await listSettled(page)
     for (const age of await ages(page)) {
       expect(age).toBeGreaterThanOrEqual(60)
       expect(age).toBeLessThanOrEqual(69)
@@ -88,7 +103,7 @@ test.describe('advanced filters', () => {
     await expect(
       activeFilters(page).getByText('Last visit Jan 1, 2020 – May 31, 2025'),
     ).toBeVisible()
-    await expect(patientRows(page).first()).toBeVisible()
+    await listSettled(page)
     const visits = await patientRows(page).locator('td:nth-child(3)').allTextContents()
     expect(visits.length).toBeGreaterThan(0)
     for (const visit of visits) {
@@ -106,6 +121,7 @@ test.describe('advanced filters', () => {
 
     await expect(names(page).first()).toHaveText('Clementine Hayes')
     await expect(names(page).nth(1)).toHaveText('Buck Abbott')
+    await listSettled(page)
     expect((await ages(page)).every((age) => age >= 70)).toBe(true)
 
     await page.getByRole('textbox', { name: 'Search patients' }).fill('holloway')
@@ -189,11 +205,14 @@ test.describe('the list view lives in the URL', () => {
       .click()
     await expect.poll(() => address(page)).toBe('/patients?order=desc&sort=age&status=active')
 
+    // The paging controls sit below the rows; let the rows stop moving first.
+    await listSettled(page)
     await page.getByRole('button', { name: 'next page' }).click()
     await expect
       .poll(() => address(page))
       .toBe('/patients?order=desc&page=2&sort=age&status=active')
 
+    await listSettled(page)
     await page.getByRole('combobox', { name: 'Patients per page' }).click()
     await page.getByRole('option', { name: '50 per page' }).click()
     // Changing the page size goes back to the first page.
@@ -221,6 +240,8 @@ test.describe('the list view lives in the URL', () => {
     await page.getByRole('button', { name: 'Clear all filters' }).click()
     await page.getByRole('radiogroup', { name: 'Filter by status' }).getByText('All').click()
     await page.getByRole('columnheader', { name: 'Name' }).getByRole('button').click()
+    await expect.poll(() => address(page)).toBe('/patients?page_size=50')
+    await listSettled(page)
     await page.getByRole('combobox', { name: 'Patients per page' }).click()
     await page.getByRole('option', { name: '20 per page' }).click()
     await expect.poll(() => address(page)).toBe('/patients')
