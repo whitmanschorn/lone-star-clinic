@@ -12,6 +12,7 @@ import { usePatientStats } from '../../api/hooks'
 import type { PatientStatus } from '../../api/types'
 import { useAppDispatch, useAppSelector } from '../../store/hooks'
 import { selectPatientList, statusChanged } from '../../store/patientListSlice'
+import { ColorSchemeNavItem } from '../ColorSchemeToggle'
 
 interface StatusShortcut {
   status: PatientStatus | null
@@ -87,6 +88,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             }}
           />
         ))}
+      </Box>
+
+      <Box hiddenFrom="sm">
+        <ColorSchemeNavItem />
       </Box>
     </Stack>
   )

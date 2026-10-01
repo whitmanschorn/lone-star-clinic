@@ -58,7 +58,7 @@ const PatientRow = memo(function PatientRow({
     <Table.Tr
       onClick={() => void navigate(href)}
       data-highlighted={highlighted || undefined}
-      bg={highlighted ? 'yellow.1' : undefined}
+      bg={highlighted ? 'var(--clinic-highlight-bg)' : undefined}
       style={{ cursor: 'pointer', transition: 'background-color 600ms' }}
     >
       <Table.Td>

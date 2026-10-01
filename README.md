@@ -185,6 +185,10 @@ same signature. Dates in the narrative use the clinic's time zone (`CLINIC_TIMEZ
   debounced, and SWR keeps the previous rows on screen (dimmed) until the new ones arrive.
 - **Responsive:** below 768px the sidebar becomes a drawer and the table becomes a list of
   cards with a sort picker.
+- **Dark and light mode:** follows the operating system until the user picks one with the
+  toggle in the header (in the drawer on phones); the choice is remembered. A small inline
+  script in `index.html` applies it before the app loads, so there is no flash of the wrong
+  theme.
 - **Working from the list:** "New patient", and each row's Edit and Add note, open a modal
   over the list, so several patients can be worked on without leaving it. The patient page's
   Edit button opens the same modal.

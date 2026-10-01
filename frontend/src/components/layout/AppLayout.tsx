@@ -4,6 +4,7 @@ import { Notifications } from '@mantine/notifications'
 import { Link, Outlet, useMatch } from 'react-router'
 import { ApiStatus } from '../ApiStatus'
 import { Brand } from '../Brand'
+import { ColorSchemeToggle } from '../ColorSchemeToggle'
 import { PatientModals } from '../patients/PatientModals'
 import { Sidebar } from './Sidebar'
 
@@ -49,7 +50,13 @@ export function AppLayout() {
             <HeaderLink to="/" end label="Dashboard" />
             <HeaderLink to="/patients" label="Patients" />
           </Group>
-          <ApiStatus />
+          <Group gap="sm" wrap="nowrap">
+            <ApiStatus />
+            {/* On narrow screens the toggle is in the drawer; there is no room here. */}
+            <Group visibleFrom="sm">
+              <ColorSchemeToggle />
+            </Group>
+          </Group>
         </Group>
       </AppShell.Header>
 

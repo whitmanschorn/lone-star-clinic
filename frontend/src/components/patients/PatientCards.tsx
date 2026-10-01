@@ -25,7 +25,7 @@ const PatientCard = memo(function PatientCard({
       withBorder
       padding="sm"
       data-highlighted={highlighted || undefined}
-      bg={highlighted ? 'yellow.1' : undefined}
+      bg={highlighted ? 'var(--clinic-highlight-bg)' : undefined}
       style={{ transition: 'background-color 600ms' }}
     >
       <Group justify="space-between" wrap="nowrap" align="flex-start">

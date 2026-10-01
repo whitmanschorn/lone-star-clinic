@@ -1,0 +1,16 @@
+/* App-level colours that need a different value in dark mode. Mantine's own
+   components adapt by themselves; these cover the few places where the app
+   picks a background directly. */
+:root {
+  @mixin light-root {
+    /* A tinted panel inside a card, e.g. one chart-update row. */
+    --clinic-panel-bg: var(--mantine-color-gray-0);
+    /* A row that has just been changed. */
+    --clinic-highlight-bg: var(--mantine-color-yellow-1);
+  }
+
+  @mixin dark-root {
+    --clinic-panel-bg: var(--mantine-color-dark-6);
+    --clinic-highlight-bg: rgba(250, 176, 5, 0.22);
+  }
+}

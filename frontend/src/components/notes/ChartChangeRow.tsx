@@ -43,7 +43,7 @@ export function ChartChangeRow({
       align="flex-start"
       gap="xs"
       // A tinted panel keeps each update together when its inputs wrap on a phone.
-      bg="gray.0"
+      bg="var(--clinic-panel-bg)"
       p="xs"
       bdrs="sm"
     >
