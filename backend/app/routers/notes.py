@@ -1,13 +1,15 @@
 import uuid
+from typing import Annotated
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlmodel import col, select
 
 from app.chart import ChartConflict, apply_changes
 from app.config import get_settings
 from app.db import SessionDep
 from app.models import ErrorMessage, Note, NoteCreate, NotePublic, PatientSummary, utcnow
+from app.narrative import GeneratorChoice, available_generators, narrate
 from app.routers.patients import NOT_FOUND, PatientDep
 from app.summary import build_summary
 
@@ -73,7 +75,34 @@ def delete_note(patient: PatientDep, note_id: uuid.UUID, session: SessionDep) ->
 
 
 @router.get("/summary")
-def patient_summary(patient: PatientDep, session: SessionDep) -> PatientSummary:
+def patient_summary(
+    patient: PatientDep,
+    session: SessionDep,
+    generator: Annotated[
+        GeneratorChoice,
+        Query(description='Who should write the narrative. "auto" is the server\'s default.'),
+    ] = GeneratorChoice.AUTO,
+    refresh: Annotated[
+        bool, Query(description="Ask the LLM again instead of reusing its earlier answer.")
+    ] = False,
+) -> PatientSummary:
+    """A readable summary of the patient's profile and notes.
+
+    The narrative is written by an LLM when one is configured, and by a
+    built-in template otherwise or whenever the LLM cannot answer; the
+    response says which, and why if it fell back.
+    """
+    settings = get_settings()
     notes = session.exec(select(Note).where(Note.patient_id == patient.id)).all()
-    timezone = ZoneInfo(get_settings().clinic_timezone)
-    return build_summary(patient, notes, timezone)
+    timezone = ZoneInfo(settings.clinic_timezone)
+    narrative = narrate(patient, notes, timezone, settings, generator, refresh)
+    return build_summary(
+        patient,
+        notes,
+        timezone,
+        narrative=narrative.text,
+        generator=narrative.generator,
+        model=narrative.model,
+        fallback_reason=narrative.fallback_reason,
+        available_generators=available_generators(settings),
+    )

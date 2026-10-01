@@ -1,6 +1,8 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # The repo-root .env is shared with docker compose. It is optional: every
@@ -22,6 +24,25 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5180", "http://localhost:8080"]
 
     log_level: str = "INFO"
+
+    # --- Patient summaries -------------------------------------------------
+    # Who writes the narrative: "auto" uses the first provider below that has
+    # an API key and the built-in template when none does; a provider name
+    # makes that one the default; "template" turns LLM summaries off entirely,
+    # so no patient data leaves the server.
+    summary_provider: Literal["auto", "template", "deepseek", "openai", "anthropic"] = "auto"
+    # How long to wait for a provider before falling back to the template.
+    summary_timeout_seconds: float = 30.0
+
+    deepseek_api_key: SecretStr | None = None
+    deepseek_model: str = "deepseek-flash"  # DeepSeek V4.1 Flash
+    deepseek_base_url: str = "https://api.deepseek.com"
+
+    openai_api_key: SecretStr | None = None
+    openai_model: str = "gpt-6-luna"
+
+    anthropic_api_key: SecretStr | None = None
+    anthropic_model: str = "claude-opus-5"
 
     # Used wherever a timestamp has to be shown as a calendar date, e.g. the
     # dates quoted in a patient summary.

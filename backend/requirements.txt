@@ -6,3 +6,5 @@ psycopg[binary]~=3.3.6
 pydantic-settings~=2.15.0
 email-validator~=2.3.0
 tzdata>=2025.2
+openai~=3.22.1
+anthropic~=1.11.0

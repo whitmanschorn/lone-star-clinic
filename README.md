@@ -51,8 +51,9 @@ to `.env` and edit it. `docker compose down -v` stops everything and deletes the
 
 Trade-offs worth knowing about:
 
-- **Template summary, not an LLM.** Deterministic, testable, and it runs without an API key.
-  The generator is one pure function, so an LLM version can sit behind the same signature.
+- **Template summary by default, LLM optional.** The template is deterministic, testable and
+  runs without an API key. An LLM writes only the narrative, only when a key is set, and any
+  failure falls back to the template.
 - **Sync SQLAlchemy.** Plain `def` endpoints on FastAPI's thread pool, as in FastAPI's
   tutorial. Simpler to read and test; an async engine would be the change to make if
   long-lived connections (websockets, streaming) arrive.
@@ -75,6 +76,7 @@ Trade-offs worth knowing about:
 | Dark and light theme switching | `frontend/src/components/ColorSchemeToggle.tsx` |
 | Advanced search with filters, bookmarkable in the URL | `frontend/src/components/patients/PatientFilterPanel.tsx`, `frontend/src/lib/usePatientListUrlSync.ts` |
 | Data visualization on the dashboard | `frontend/src/components/charts` |
+| LLM-written summaries (DeepSeek, OpenAI or Anthropic), optional with fallback | `backend/app/llm.py`, `backend/app/narrative.py`; see [Patient summary](#patient-summary) |
 | Memoised rows | `PatientTable.tsx`, `PatientCards.tsx` |
 
 ## Development without Docker for the app
@@ -178,14 +180,44 @@ record is updated in the same step as the note that explains why:
 ### Patient summary
 
 `GET /patients/{id}/summary` returns the identifiers (name, age, blood type), the clinical
-information (conditions, allergies), a `narrative` built from the notes, and `summary`, the
-whole thing as plain text. Medications are included alongside conditions and allergies.
+information (conditions, medications, allergies), a `narrative` built from the notes, and
+`summary`, the whole thing as plain text.
 
-The generator is a template (`backend/app/summary.py`), not an LLM: it is deterministic, needs
-no API key, and can be tested exactly. The narrative walks the notes in date order, quoting the
-first, the latest and up to three in between, and counts the rest so a long history stays
-readable. It is a single pure function, so an LLM-backed version can be swapped in behind the
-same signature. Dates in the narrative use the clinic's time zone (`CLINIC_TIMEZONE`).
+The identifiers and clinical information always come straight from the record. The narrative
+has two possible authors:
+
+- **The built-in template** (`backend/app/summary.py`), the default. It is deterministic, needs
+  no API key and can be tested exactly. It walks the notes in date order, quoting the first,
+  the latest and up to three in between, and counts the rest so a long history stays readable.
+- **An LLM**, when you provide an API key for DeepSeek, OpenAI or Anthropic
+  (`backend/app/llm.py`, `backend/app/narrative.py`).
+
+To turn LLM summaries on, set one or more keys in `.env`:
+
+```sh
+DEEPSEEK_API_KEY=...     # model: DEEPSEEK_MODEL, default deepseek-flash (DeepSeek V4.1 Flash)
+OPENAI_API_KEY=...       # model: OPENAI_MODEL
+ANTHROPIC_API_KEY=...    # model: ANTHROPIC_MODEL, default claude-opus-5
+SUMMARY_PROVIDER=auto    # auto | template | deepseek | openai | anthropic
+```
+
+- **Which provider:** `auto` uses the first of DeepSeek, OpenAI, Anthropic that has a key.
+  Name a provider to make it the default. A request can also ask for any configured one with
+  `?generator=deepseek` (or `template`); the summary tab offers the same choice.
+- **Fallback:** if the provider fails for any reason (bad key, timeout, rate limit, refusal,
+  empty answer) the response is the template summary, with `fallback_reason` saying why. The
+  response always says who wrote the narrative (`generator`, `model`).
+- **Caching:** an unchanged record is answered from an in-memory cache; `?refresh=true`
+  (the Regenerate button) asks again.
+- **Privacy:** enabling this sends patient data to the provider you chose: first name, age,
+  status, conditions, medications, allergies and the notes. Surname, date of birth, contact
+  details and address are not sent, and prompts are never logged. `SUMMARY_PROVIDER=template`
+  turns LLM summaries off whatever keys are set, and no request can override it. The sample
+  data is fictional; real patient data would need an agreement with the provider first.
+- **Not verified live:** the DeepSeek path was run against the real API. The OpenAI and
+  Anthropic paths are covered by unit tests with a fake client only, as no key was available.
+
+Dates in the narrative use the clinic's time zone (`CLINIC_TIMEZONE`).
 
 ## Frontend
 
@@ -271,7 +303,8 @@ npm run typecheck
 
 `npm test` starts its own API on port 8001 against a separate `clinic_test` database, which is
 dropped, migrated and seeded on every run, plus its own build of the frontend on port 5181.
-Tests never touch your development data.
+Tests never touch your development data, and never call an LLM: the test API runs with
+`SUMMARY_PROVIDER=template`, and the LLM code is unit-tested against a fake provider.
 
 To run the same tests against the containers from the quick start instead:
 

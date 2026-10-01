@@ -1,6 +1,7 @@
 import useSWR, { type ScopedMutator } from 'swr'
 import { api, unwrap, type ApiError } from './client'
 import type {
+  GeneratorChoice,
   Health,
   Note,
   Patient,
@@ -134,13 +135,23 @@ export function usePatientNotes(patientId: string) {
   )
 }
 
-export function usePatientSummary(patientId: string) {
+/** Fetch a patient's summary. `refresh` asks an LLM generator to write it afresh. */
+export function fetchPatientSummary(
+  patientId: string,
+  generator: GeneratorChoice,
+  refresh = false,
+): Promise<PatientSummary> {
+  return unwrap(
+    api.GET('/patients/{patient_id}/summary', {
+      params: { path: { patient_id: patientId }, query: { generator, refresh } },
+    }),
+  )
+}
+
+export function usePatientSummary(patientId: string, generator: GeneratorChoice = 'auto') {
   return useSWR<PatientSummary, ApiError>(
-    patientKey(patientId, 'summary'),
-    () =>
-      unwrap(
-        api.GET('/patients/{patient_id}/summary', { params: { path: { patient_id: patientId } } }),
-      ),
+    patientKey(patientId, 'summary', generator),
+    () => fetchPatientSummary(patientId, generator),
     noRetryWhenMissing,
   )
 }

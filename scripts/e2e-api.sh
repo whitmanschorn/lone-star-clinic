@@ -13,6 +13,9 @@ if [ -f .env ]; then
   set +a
 fi
 
+# Tests must never call a real LLM, whatever keys are in .env.
+export SUMMARY_PROVIDER=template
+
 export DATABASE_URL="postgresql+psycopg://${POSTGRES_USER:-clinic}:${POSTGRES_PASSWORD:-clinic}@localhost:${POSTGRES_PORT:-5433}/clinic_test"
 
 cd backend

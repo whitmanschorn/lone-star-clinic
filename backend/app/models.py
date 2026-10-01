@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, date, datetime, timedelta
 from enum import StrEnum
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, Self
 
 from pydantic import (
     EmailStr,
@@ -337,6 +337,13 @@ class NotePublic(NoteBase):
     changes: list[ChartChange]
 
 
+class SummaryGenerator(StrEnum):
+    TEMPLATE = "template"
+    DEEPSEEK = "deepseek"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+
+
 class PatientSummary(SQLModel):
     """A readable synthesis of a patient's profile and notes."""
 
@@ -353,7 +360,14 @@ class PatientSummary(SQLModel):
     note_count: int
     narrative: str = Field(description="The story told by the notes, oldest to newest.")
     summary: str = Field(description="The whole summary as plain text, ready to display.")
-    generator: Literal["template"] = "template"
+    generator: SummaryGenerator = Field(description="Who wrote the narrative.")
+    model: str | None = Field(description="The LLM model used, when the generator is a provider.")
+    fallback_reason: str | None = Field(
+        description="Why the template was used when an LLM narrative was wanted, else null."
+    )
+    available_generators: list[SummaryGenerator] = Field(
+        description="What this server can be asked for, its default first."
+    )
     generated_at: datetime
 
 

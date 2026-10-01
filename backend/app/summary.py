@@ -1,9 +1,9 @@
 """Build a human-readable patient summary from the profile and notes.
 
-This is a deterministic, template-based generator: the same patient and notes
-always produce the same text, and it needs no network or API key. It is one
-pure function, so swapping in an LLM later means writing a second function
-with the same signature.
+The identifiers and the clinical information always come straight from the
+record. The narrative has two possible authors: the deterministic template in
+this module, which needs no network or API key, or an LLM provider (see
+narrative.py), which falls back to the template whenever it cannot answer.
 """
 
 from collections.abc import Sequence
@@ -82,8 +82,8 @@ def clinical_paragraph(patient: Patient) -> str:
     return f"{conditions} {medications} {allergies} {last_visit}"
 
 
-def narrative_paragraph(patient: Patient, notes: Sequence[Note], timezone: ZoneInfo) -> str:
-    """Tell the story of the notes in date order."""
+def template_narrative(patient: Patient, notes: Sequence[Note], timezone: ZoneInfo) -> str:
+    """Tell the story of the notes in date order, from a fixed template."""
     if not notes:
         return f"No clinical notes have been recorded for {patient.first_name} yet."
 
@@ -113,10 +113,20 @@ def narrative_paragraph(patient: Patient, notes: Sequence[Note], timezone: ZoneI
     return " ".join(sentences)
 
 
-def build_summary(patient: Patient, notes: Sequence[Note], timezone: ZoneInfo) -> PatientSummary:
+def build_summary(
+    patient: Patient,
+    notes: Sequence[Note],
+    timezone: ZoneInfo,
+    *,
+    narrative: str,
+    generator: str,
+    model: str | None,
+    fallback_reason: str | None,
+    available_generators: list[str],
+) -> PatientSummary:
+    """Assemble the summary around a narrative written elsewhere."""
     generated_at = utcnow()
     age = age_on(patient.date_of_birth, generated_at.astimezone(timezone).date())
-    narrative = narrative_paragraph(patient, notes, timezone)
     paragraphs = [identifiers_paragraph(patient, age), clinical_paragraph(patient), narrative]
 
     return PatientSummary(
@@ -131,5 +141,9 @@ def build_summary(patient: Patient, notes: Sequence[Note], timezone: ZoneInfo) -
         note_count=len(notes),
         narrative=narrative,
         summary="\n\n".join(paragraphs),
+        generator=generator,
+        model=model,
+        fallback_reason=fallback_reason,
+        available_generators=available_generators,
         generated_at=generated_at,
     )

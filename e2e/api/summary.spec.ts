@@ -172,6 +172,50 @@ test.describe('GET /patients/{id}/summary', () => {
     }
   })
 
+  test('says who wrote the narrative and what else could', async ({ request }) => {
+    const page = (await (await request.get('/patients?q=slim calhoun')).json()) as PatientsPage
+
+    const summary = (await (
+      await request.get(`/patients/${page.items[0]!.id}/summary`)
+    ).json()) as PatientSummary
+
+    // The test server has LLM summaries turned off, so the template wrote it.
+    expect(summary.generator).toBe('template')
+    expect(summary.model).toBeNull()
+    expect(summary.fallback_reason).toBeNull()
+    expect(summary.available_generators).toEqual(['template'])
+  })
+
+  test('asking for an unavailable LLM falls back to the template and says why', async ({
+    request,
+  }) => {
+    const page = (await (await request.get('/patients?q=slim calhoun')).json()) as PatientsPage
+    const plain = (await (
+      await request.get(`/patients/${page.items[0]!.id}/summary`)
+    ).json()) as PatientSummary
+
+    for (const generator of ['deepseek', 'openai', 'anthropic']) {
+      const response = await request.get(
+        `/patients/${page.items[0]!.id}/summary?generator=${generator}&refresh=true`,
+      )
+
+      expect(response.status()).toBe(200)
+      const summary = (await response.json()) as PatientSummary
+      expect(summary.generator).toBe('template')
+      expect(summary.fallback_reason).toBe('AI summaries are turned off on this server')
+      // Still a complete, usable summary.
+      expect(summary.narrative).toBe(plain.narrative)
+    }
+  })
+
+  test('rejects an unknown generator with 422', async ({ request }) => {
+    const page = (await (await request.get('/patients?q=slim calhoun')).json()) as PatientsPage
+
+    const response = await request.get(`/patients/${page.items[0]!.id}/summary?generator=robot`)
+
+    expect(response.status()).toBe(422)
+  })
+
   test('returns 404 for a patient that does not exist', async ({ request }) => {
     const response = await request.get('/patients/00000000-0000-4000-8000-000000000000/summary')
 

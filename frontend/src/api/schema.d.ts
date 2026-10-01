@@ -136,7 +136,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Patient Summary */
+        /**
+         * Patient Summary
+         * @description A readable summary of the patient's profile and notes.
+         *
+         *     The narrative is written by an LLM when one is configured, and by a
+         *     built-in template otherwise or whenever the LLM cannot answer; the
+         *     response says which, and why if it fell back.
+         */
         get: operations["patient_summary"];
         put?: never;
         post?: never;
@@ -210,6 +217,12 @@ export interface components {
             /** Detail */
             detail: string;
         };
+        /**
+         * GeneratorChoice
+         * @description What a request may ask for. "auto" means the server's default.
+         * @enum {string}
+         */
+        GeneratorChoice: "auto" | "template" | "deepseek" | "openai" | "anthropic";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -431,12 +444,23 @@ export interface components {
              * @description The whole summary as plain text, ready to display.
              */
             summary: string;
+            /** @description Who wrote the narrative. */
+            generator: components["schemas"]["SummaryGenerator"];
             /**
-             * Generator
-             * @default template
-             * @constant
+             * Model
+             * @description The LLM model used, when the generator is a provider.
              */
-            generator: "template";
+            model: string | null;
+            /**
+             * Fallback Reason
+             * @description Why the template was used when an LLM narrative was wanted, else null.
+             */
+            fallback_reason: string | null;
+            /**
+             * Available Generators
+             * @description What this server can be asked for, its default first.
+             */
+            available_generators: components["schemas"]["SummaryGenerator"][];
             /**
              * Generated At
              * Format: date-time
@@ -482,6 +506,11 @@ export interface components {
              */
             critical: number;
         };
+        /**
+         * SummaryGenerator
+         * @enum {string}
+         */
+        SummaryGenerator: "template" | "deepseek" | "openai" | "anthropic";
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -887,7 +916,12 @@ export interface operations {
     };
     patient_summary: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Who should write the narrative. "auto" is the server's default. */
+                generator?: components["schemas"]["GeneratorChoice"];
+                /** @description Ask the LLM again instead of reusing its earlier answer. */
+                refresh?: boolean;
+            };
             header?: never;
             path: {
                 patient_id: string;
