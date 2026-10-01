@@ -49,7 +49,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Patient Stats */
+        /**
+         * Patient Stats
+         * @description Aggregates for the dashboard.
+         */
         get: operations["patient_stats"];
         put?: never;
         post?: never;
@@ -148,6 +151,20 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * AgeBandCount
+         * @description How many patients fall in one age band. `max_age` is null for the open-ended last band.
+         */
+        AgeBandCount: {
+            /** Label */
+            label: string;
+            /** Min Age */
+            min_age: number;
+            /** Max Age */
+            max_age: number | null;
+            /** Count */
+            count: number;
+        };
+        /**
          * BloodType
          * @enum {string}
          */
@@ -178,6 +195,13 @@ export interface components {
          * @enum {string}
          */
         ChartField: "conditions" | "medications" | "allergies";
+        /** ConditionCount */
+        ConditionCount: {
+            /** Name */
+            name: string;
+            /** Count */
+            count: number;
+        };
         /**
          * ErrorMessage
          * @description Body of 4xx/5xx responses raised by the API (FastAPI's HTTPException shape).
@@ -363,6 +387,10 @@ export interface components {
             by_status: components["schemas"]["StatusCounts"];
             /** Seen Last 30 Days */
             seen_last_30_days: number;
+            /** By Age Band */
+            by_age_band: components["schemas"]["AgeBandCount"][];
+            /** Top Conditions */
+            top_conditions: components["schemas"]["ConditionCount"][];
         };
         /**
          * PatientStatus

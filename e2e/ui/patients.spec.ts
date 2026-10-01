@@ -64,24 +64,71 @@ test.describe('patient list', () => {
   })
 
   test('typing stays responsive while results are loading', async ({ page }) => {
-    // Hold every search response back for a second.
+    // Hold every search response back until the test lets it go.
+    let release = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
     await page.route('**/api/patients?*q=*', async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await held
       await route.continue()
     })
     const search = page.getByRole('textbox', { name: 'Search patients' })
 
+    const searching = page.waitForRequest('**/api/patients?*q=lefty*')
     await search.fill('lefty')
-    // While the request is pending the input already shows the text, the old
-    // rows are still on screen, and the user can keep typing.
-    await expect(search).toHaveValue('lefty')
+    await searching
+
+    // The request is now in flight and unanswered. The previous rows are
+    // still on screen, not replaced by placeholders, and the box still takes
+    // input.
+    await expect(patientRows(page)).toHaveCount(20)
     await expect(page.getByRole('link', { name: 'Buck Abbott' })).toBeVisible()
+    await expect(page.getByLabel('Loading patients')).toHaveCount(0)
+    await expect(page.getByRole('status').filter({ hasText: 'Updating…' })).toBeVisible()
     await search.press('End')
     await search.pressSequentially(' mc')
     await expect(search).toHaveValue('lefty mc')
 
+    release()
     await expect(patientRows(page)).toHaveCount(1)
     await expect(page.getByRole('link', { name: 'Lefty McGraw' })).toBeVisible()
+  })
+
+  test('keeps the rows on screen while a different filter, sort or page loads', async ({
+    page,
+  }) => {
+    let holding = false
+    let release = () => {}
+    await page.route('**/api/patients?*', async (route) => {
+      if (holding) await new Promise<void>((resolve) => (release = resolve))
+      await route.continue()
+    })
+
+    const changes: [string, () => Promise<void>][] = [
+      [
+        'status filter',
+        () =>
+          page.getByRole('radiogroup', { name: 'Filter by status' }).getByText('Inactive').click(),
+      ],
+      ['sort', () => page.getByRole('columnheader', { name: 'Age' }).getByRole('button').click()],
+      ['page', () => page.getByRole('button', { name: 'next page' }).click()],
+    ]
+    for (const [what, change] of changes) {
+      const before = await patientRows(page).count()
+      expect(before, what).toBeGreaterThan(0)
+
+      holding = true
+      const requested = page.waitForRequest('**/api/patients?*')
+      await change()
+      await requested
+
+      // Mid-request: same rows, dimmed, never the loading placeholders.
+      await expect(patientRows(page), what).toHaveCount(before)
+      await expect(page.getByLabel('Loading patients'), what).toHaveCount(0)
+
+      holding = false
+      release()
+      await expect(page.getByRole('status').filter({ hasText: 'Updating…' }), what).toHaveCount(0)
+    }
   })
 
   test('shows an empty state with a way out when nothing matches', async ({ page }) => {

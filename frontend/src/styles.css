@@ -7,10 +7,38 @@
     --clinic-panel-bg: var(--mantine-color-gray-0);
     /* A row that has just been changed. */
     --clinic-highlight-bg: var(--mantine-color-yellow-1);
+
+    /* Chart colours. Each set was checked for lightness, colour-blind
+       separation and contrast against this mode's card surface (#ffffff). */
+    --chart-status-critical: #f03e3e;
+    --chart-status-active: #0ca678;
+    /* Neutral, and below 3:1 on white by design: the legend's labels and the
+       table view carry the value. */
+    --chart-status-inactive: #adb5bd;
+    /* One hue for a single series. */
+    --chart-series: #a8521f;
+    /* The same hue as an ordered ramp, for ordered bands: more is darker. */
+    --chart-ramp-1: #db9158;
+    --chart-ramp-2: #c66a2a;
+    --chart-ramp-3: #a8521f;
+    --chart-ramp-4: #8e4419;
+    --chart-ramp-5: #733511;
   }
 
   @mixin dark-root {
     --clinic-panel-bg: var(--mantine-color-dark-6);
     --clinic-highlight-bg: rgba(250, 176, 5, 0.22);
+
+    /* Checked against the dark card surface (#2e2e2e). The ramp runs the
+       other way: on a dark surface, more is lighter. */
+    --chart-status-critical: #f03e3e;
+    --chart-status-active: #0ca678;
+    --chart-status-inactive: #adb5bd;
+    --chart-series: #c66a2a;
+    --chart-ramp-1: #a8521f;
+    --chart-ramp-2: #c66a2a;
+    --chart-ramp-3: #db9158;
+    --chart-ramp-4: #e3ab7f;
+    --chart-ramp-5: #edc9ad;
   }
 }

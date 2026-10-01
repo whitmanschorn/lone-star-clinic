@@ -180,3 +180,49 @@ test('GET /patients/stats counts patients by status', async ({ request }) => {
   expect(stats.seen_last_30_days).toBeGreaterThan(0)
   expect(stats.seen_last_30_days).toBeLessThan(stats.total)
 })
+
+test.describe('GET /patients/stats chart data', () => {
+  test('counts patients in every age band, youngest first', async ({ request }) => {
+    const stats = (await (await request.get('/patients/stats')).json()) as PatientStats
+
+    expect(stats.by_age_band.map((band) => [band.label, band.min_age, band.max_age])).toEqual([
+      ['0–17', 0, 17],
+      ['18–39', 18, 39],
+      ['40–64', 40, 64],
+      ['65–79', 65, 79],
+      ['80+', 80, null],
+    ])
+    const counted = stats.by_age_band.reduce((sum, band) => sum + band.count, 0)
+    // Other tests add and remove patients between the two reads below.
+    expect(Math.abs(counted - stats.total)).toBeLessThan(15)
+    expect(stats.by_age_band.every((band) => band.count > 0)).toBe(true)
+  })
+
+  test('each age band agrees with the list filtered to the same ages', async ({ request }) => {
+    const stats = (await (await request.get('/patients/stats')).json()) as PatientStats
+
+    for (const band of stats.by_age_band) {
+      const range =
+        band.max_age === null
+          ? `min_age=${band.min_age}`
+          : `min_age=${band.min_age}&max_age=${band.max_age}`
+      const page = (await (
+        await request.get(`/patients?${range}&page_size=1`)
+      ).json()) as PatientsPage
+      // Allow for patients created and deleted by tests running in parallel.
+      expect(Math.abs(page.total - band.count), band.label).toBeLessThan(15)
+    }
+  })
+
+  test('lists the most common conditions, most common first', async ({ request }) => {
+    const stats = (await (await request.get('/patients/stats')).json()) as PatientStats
+
+    expect(stats.top_conditions).toHaveLength(6)
+    const counts = stats.top_conditions.map((condition) => condition.count)
+    expect(counts).toEqual([...counts].sort((a, b) => b - a))
+    expect(counts.every((count) => count > 0)).toBe(true)
+    // Hypertension is on a dozen seeded charts and on every test patient.
+    expect(stats.top_conditions[0]?.name).toBe('Hypertension')
+    expect(new Set(stats.top_conditions.map((c) => c.name.toLowerCase())).size).toBe(6)
+  })
+})

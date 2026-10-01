@@ -23,7 +23,8 @@ to `.env` and edit it. `docker compose down -v` stops everything and deletes the
 
 ## What it does
 
-- **Dashboard:** patient counts by status, critical patients and recent visits.
+- **Dashboard:** headline counts, charts of patients by status, by age and by condition,
+  critical patients and recent visits.
 - **Patient list:** server-side search, status filter, sorting and numbered pages over 100+
   patients; a table on desktop and cards on phones.
 - **Working from the list:** create and edit patients and add notes in modals, without leaving
@@ -62,6 +63,20 @@ Trade-offs worth knowing about:
   would close it.
 - **No authentication.** Out of scope here, and the first thing a real deployment would need.
 
+## Stretch goals
+
+| Goal | Where |
+|---|---|
+| Unit tests for API endpoints | `e2e/api` (Playwright against the real API and database), `backend/tests` (pytest) |
+| E2E tests for main user journeys | `e2e/ui`, on desktop and mobile |
+| Request logging middleware | `backend/app/middleware.py`; see [Request logging](#request-logging) |
+| Sorting and filtering query parameters | `backend/app/patient_query.py` |
+| Database migrations with Alembic | `backend/migrations` |
+| Dark and light theme switching | `frontend/src/components/ColorSchemeToggle.tsx` |
+| Advanced search with filters, bookmarkable in the URL | `frontend/src/components/patients/PatientFilterPanel.tsx`, `frontend/src/lib/usePatientListUrlSync.ts` |
+| Data visualization on the dashboard | `frontend/src/components/charts` |
+| Memoised rows | `PatientTable.tsx`, `PatientCards.tsx` |
+
 ## Development without Docker for the app
 
 Prerequisites: Docker (for Postgres only), Node 22+, Python 3.11+.
@@ -94,7 +109,7 @@ Interactive docs are at http://localhost:8000/docs.
 |---|---|---|
 | `GET` | `/health` | `{"status": "ok"}` |
 | `GET` | `/patients` | Paginated list. Query: `page`, `page_size` (1-100), `sort`, `order`, `q`, `status`, plus the filters below |
-| `GET` | `/patients/stats` | Counts by status, for the dashboard |
+| `GET` | `/patients/stats` | Dashboard aggregates: counts by status and by age band, and the most common conditions |
 | `GET` | `/patients/{id}` | |
 | `POST` | `/patients` | `201` with a `Location` header |
 | `PUT` | `/patients/{id}` | Replaces the whole record |
@@ -176,7 +191,7 @@ same signature. Dates in the narrative use the clinic's time zone (`CLINIC_TIMEZ
 
 | Route | Page |
 |---|---|
-| `/` | Dashboard: counts, critical patients, recent visits |
+| `/` | Dashboard: counts, charts, critical patients, recent visits |
 | `/patients` | Patient list: search, status filter, sorting, pagination, and row actions to edit a patient or add a note |
 | `/patients/new` | Create a patient (the same form, as a page, for direct links) |
 | `/patients/:id/edit` | Edit a patient (likewise) |
@@ -187,8 +202,17 @@ same signature. Dates in the narrative use the clinic's time zone (`CLINIC_TIMEZ
   browser only ever holds one page of rows.
 - **Non-blocking search:** the input updates instantly from local state; the request is
   debounced, and SWR keeps the previous rows on screen (dimmed) until the new ones arrive.
+  The same holds for a change of filter, sort or page: loading placeholders appear only on
+  the very first load.
 - **Responsive:** below 768px the sidebar becomes a drawer and the table becomes a list of
   cards with a sort picker.
+- **Dashboard charts:** three small charts, each chosen for what its data has to say: one
+  stacked bar for patients by status (parts of a whole), columns for patients by age band, and
+  horizontal bars for the most common conditions. Every mark links to the patient list
+  filtered to match, shows its value on hover and on keyboard focus, and each chart can be
+  switched to a table, so nothing depends on colour or on hovering. They are plain HTML and
+  CSS (`frontend/src/components/charts`): three bar forms did not justify a charting library.
+  Colours were checked for colour-blind separation and contrast in both colour schemes.
 - **Advanced filters:** the Filters button opens a panel for age range, blood type, last-visit
   dates, condition, medication, allergy and city. Applied filters show as chips that can be
   removed one at a time.

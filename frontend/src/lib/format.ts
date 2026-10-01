@@ -50,3 +50,8 @@ export function toDateTimeInputValue(date: Date): string {
     `T${pad(date.getHours())}:${pad(date.getMinutes())}`
   )
 }
+
+/** A count as a whole-number share of a total, e.g. "7%". */
+export function percent(count: number, total: number): string {
+  return total > 0 ? `${Math.round((count / total) * 100)}%` : '0%'
+}

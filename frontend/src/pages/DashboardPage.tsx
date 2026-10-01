@@ -1,48 +1,52 @@
 import { Anchor, Card, Group, SimpleGrid, Skeleton, Stack, Text, Title } from '@mantine/core'
+import { IconActivityHeartbeat, IconUrgent } from '@tabler/icons-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { usePatients, usePatientStats } from '../api/hooks'
-import type { PatientListParams, PatientStatus } from '../api/types'
+import type { PatientListParams } from '../api/types'
+import { AgeChart } from '../components/charts/AgeChart'
+import { ConditionsChart } from '../components/charts/ConditionsChart'
+import { StatusChart } from '../components/charts/StatusChart'
 import { ErrorState } from '../components/ErrorState'
 import { StatusBadge } from '../components/patients/StatusBadge'
 import { formatDate, fullName } from '../lib/format'
-import { useAppDispatch } from '../store/hooks'
-import { statusChanged } from '../store/patientListSlice'
 
 interface StatCardProps {
   label: string
   value: number | undefined
-  /** When set, the card links to the patient list filtered to this status. */
-  filter?: PatientStatus | null
-  color?: string
+  /** When set, the card links here. */
+  to?: string
+  /** A status icon beside the label. Its colour marks the state; the number stays plain. */
+  icon?: ReactNode
 }
 
-function StatCard({ label, value, filter, color }: StatCardProps) {
-  const dispatch = useAppDispatch()
+function StatCard({ label, value, to, icon }: StatCardProps) {
   const content = (
     <>
-      <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-        {label}
-      </Text>
+      <Group gap={6} wrap="nowrap">
+        {icon}
+        <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+          {label}
+        </Text>
+      </Group>
       {value === undefined ? (
         <Skeleton height={34} width={60} mt={6} />
       ) : (
-        <Text fz={32} fw={700} lh={1.2} c={color}>
+        <Text fz={32} fw={700} lh={1.2}>
           {value}
         </Text>
       )}
     </>
   )
 
-  if (filter === undefined) {
+  if (to === undefined) {
     return <Card withBorder>{content}</Card>
   }
   return (
     <Card
       withBorder
       component={Link}
-      to="/patients"
-      onClick={() => dispatch(statusChanged(filter))}
+      to={to}
       aria-label={`${label}: ${value ?? 'loading'}. View in patient list`}
     >
       {content}
@@ -144,17 +148,38 @@ export function DashboardPage() {
           onRetry={() => void mutate()}
         />
       ) : (
-        <SimpleGrid cols={{ base: 2, md: 4 }}>
-          <StatCard label="Total patients" value={stats?.total} filter={null} />
-          <StatCard
-            label="Critical"
-            value={stats?.by_status.critical}
-            filter="critical"
-            color="red"
-          />
-          <StatCard label="Active" value={stats?.by_status.active} filter="active" />
-          <StatCard label="Seen in the last 30 days" value={stats?.seen_last_30_days} />
-        </SimpleGrid>
+        <>
+          <SimpleGrid cols={{ base: 2, md: 4 }}>
+            <StatCard label="Total patients" value={stats?.total} to="/patients" />
+            <StatCard
+              label="Critical"
+              value={stats?.by_status.critical}
+              to="/patients?status=critical"
+              icon={<IconUrgent size={16} color="var(--chart-status-critical)" aria-hidden />}
+            />
+            <StatCard
+              label="Active"
+              value={stats?.by_status.active}
+              to="/patients?status=active"
+              icon={
+                <IconActivityHeartbeat size={16} color="var(--chart-status-active)" aria-hidden />
+              }
+            />
+            <StatCard label="Seen in the last 30 days" value={stats?.seen_last_30_days} />
+          </SimpleGrid>
+
+          {stats ? (
+            <>
+              <StatusChart stats={stats} />
+              <SimpleGrid cols={{ base: 1, md: 2 }}>
+                <AgeChart stats={stats} />
+                <ConditionsChart stats={stats} />
+              </SimpleGrid>
+            </>
+          ) : (
+            <Skeleton height={120} />
+          )}
+        </>
       )}
 
       <SimpleGrid cols={{ base: 1, md: 2 }}>

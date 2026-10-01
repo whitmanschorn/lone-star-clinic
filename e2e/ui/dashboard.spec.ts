@@ -10,7 +10,7 @@ test('the dashboard shows patient counts from the API @mobile', async ({ page, r
   // Counts can shift by a few while other tests add and remove patients, so
   // check the seeded critical count, which nothing else changes.
   await expect(
-    page.getByRole('link', { name: new RegExp(`^Critical: ${stats.by_status.critical}\\b`) }),
+    page.getByRole('link', { name: `Critical: ${stats.by_status.critical}. View in patient list` }),
   ).toBeVisible()
   await expect(page.getByRole('link', { name: /^Total patients: \d+/ })).toBeVisible()
 })
@@ -32,7 +32,7 @@ test('the dashboard lists critical patients and recent visits', async ({ page })
 test('a stat card opens the patient list with that status applied', async ({ page }) => {
   await page.goto('/')
 
-  await page.getByRole('link', { name: /^Critical: / }).click()
+  await page.getByRole('link', { name: /^Critical: \d+\. View in patient list$/ }).click()
 
   // The filter is part of the address, so this view can be bookmarked.
   await expect(page).toHaveURL('/patients?status=critical')

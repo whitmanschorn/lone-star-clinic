@@ -119,13 +119,16 @@ test.describe('advanced filters', () => {
     await panel.getByLabel('Condition contains').fill('e')
     await panel.getByRole('button', { name: 'Apply filters' }).click()
     await expect(activeFilters(page).getByText('Age 85 and over')).toBeVisible()
+    // Wait for the three filters' result before counting it.
+    await expect(page.getByText(/^Showing 1–(\d) of \1$/)).toBeVisible()
     const narrowed = await patientRows(page).count()
 
     await page.getByRole('button', { name: 'Remove filter: Condition: e' }).click()
     await expect(activeFilters(page).getByText('Condition: e')).toHaveCount(0)
     await expect(activeFilters(page).getByText('Age 85 and over')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Filters, 2 applied' })).toBeVisible()
-    expect(await patientRows(page).count()).toBeGreaterThanOrEqual(narrowed)
+    // One filter fewer can only match the same patients or more.
+    await expect.poll(() => patientRows(page).count()).toBeGreaterThanOrEqual(narrowed)
 
     await page.getByRole('button', { name: 'Clear all filters' }).click()
     await expect(activeFilters(page)).toHaveCount(0)

@@ -4,12 +4,14 @@ from datetime import date, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import ColumnElement, case
+from sqlalchemy import ColumnElement, case, true
 from sqlalchemy.orm import aliased
 from sqlmodel import Session, col, func, select
 
 from app.db import SessionDep
 from app.models import (
+    AgeBandCount,
+    ConditionCount,
     ErrorMessage,
     Note,
     NotePreview,
@@ -22,7 +24,13 @@ from app.models import (
     StatusCounts,
     utcnow,
 )
-from app.patient_query import PatientListQuery, PatientSort, SortOrder, filter_clauses
+from app.patient_query import (
+    PatientListQuery,
+    PatientSort,
+    SortOrder,
+    filter_clauses,
+    years_before,
+)
 from app.text import shorten
 
 router = APIRouter(prefix="/patients", tags=["patients"])
@@ -133,19 +141,70 @@ def list_patients(session: SessionDep, query: Annotated[PatientListQuery, Query(
     )
 
 
+# Age bands for the dashboard chart: (label, youngest age, oldest age or None).
+AGE_BANDS: list[tuple[str, int, int | None]] = [
+    ("0–17", 0, 17),
+    ("18–39", 18, 39),
+    ("40–64", 40, 64),
+    ("65–79", 65, 79),
+    ("80+", 80, None),
+]
+TOP_CONDITIONS = 6
+
+
+def count_by_age_band(session: Session, today: date) -> list[AgeBandCount]:
+    # A band is a range of birth dates, the same arithmetic the age filters
+    # use, so a chart column and the list it links to always agree.
+    born = col(Patient.date_of_birth)
+    band = case(
+        *[
+            (born > years_before(today, max_age + 1), index)
+            for index, (_, _, max_age) in enumerate(AGE_BANDS)
+            if max_age is not None
+        ],
+        else_=len(AGE_BANDS) - 1,
+    )
+    counts = dict(session.exec(select(band, func.count()).group_by(band)).all())
+    return [
+        AgeBandCount(label=label, min_age=min_age, max_age=max_age, count=counts.get(index, 0))
+        for index, (label, min_age, max_age) in enumerate(AGE_BANDS)
+    ]
+
+
+def most_common_conditions(session: Session, limit: int) -> list[ConditionCount]:
+    # One row per (patient, condition), then counted. Grouping ignores case so
+    # "asthma" and "Asthma" are one condition.
+    entries = func.unnest(col(Patient.conditions)).table_valued("condition").render_derived()
+    condition = entries.c.condition
+    rows = session.exec(
+        select(func.min(condition), func.count())
+        .select_from(Patient)
+        .join(entries, true())
+        .group_by(func.lower(condition))
+        .order_by(func.count().desc(), func.lower(condition))
+        .limit(limit)
+    ).all()
+    return [ConditionCount(name=name, count=count) for name, count in rows]
+
+
 # Declared before /{patient_id} so "stats" is not parsed as a patient id.
 @router.get("/stats")
 def patient_stats(session: SessionDep) -> PatientStats:
+    """Aggregates for the dashboard."""
+    today = date.today()
     rows = session.exec(select(Patient.status, func.count()).group_by(col(Patient.status))).all()
     by_status = StatusCounts(**{str(status): count for status, count in rows})
-    recent_cutoff = date.today() - timedelta(days=30)
     seen_recently = session.exec(
-        select(func.count()).select_from(Patient).where(col(Patient.last_visit) >= recent_cutoff)
+        select(func.count())
+        .select_from(Patient)
+        .where(col(Patient.last_visit) >= today - timedelta(days=30))
     ).one()
     return PatientStats(
         total=sum(count for _, count in rows),
         by_status=by_status,
         seen_last_30_days=seen_recently,
+        by_age_band=count_by_age_band(session, today),
+        top_conditions=most_common_conditions(session, TOP_CONDITIONS),
     )
 
 

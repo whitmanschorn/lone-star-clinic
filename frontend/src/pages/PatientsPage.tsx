@@ -38,7 +38,7 @@ export function PatientsPage() {
   usePatientListUrlSync()
   const { search, status, filters, sort, order, page, pageSize } = useAppSelector(selectPatientList)
   const params = useAppSelector(selectPatientListParams)
-  const { data, error, isLoading, isValidating, mutate } = usePatients(params)
+  const { data, error, isValidating, mutate } = usePatients(params)
   const highlightedId = useAppSelector(selectHighlightedPatientId)
   const { openCreate, openEdit, openNote } = usePatientModals()
 
@@ -84,7 +84,10 @@ export function PatientsPage() {
 
       {error && !data ? (
         <ErrorState title="Could not load patients" error={error} onRetry={() => void mutate()} />
-      ) : isLoading || !data ? (
+      ) : // Not `isLoading`: with keepPreviousData that is true whenever a new
+      // search or filter is being fetched, even though the previous rows are
+      // still in `data`. Placeholders are only for the very first load.
+      !data ? (
         <Stack gap="xs" aria-busy="true" aria-label="Loading patients">
           {Array.from({ length: 8 }, (_, index) => (
             <Skeleton key={index} height={44} />

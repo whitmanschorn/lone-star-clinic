@@ -197,10 +197,28 @@ class StatusCounts(SQLModel):
     critical: int = 0
 
 
+class AgeBandCount(SQLModel):
+    """How many patients fall in one age band. `max_age` is null for the open-ended last band."""
+
+    label: str
+    min_age: int
+    max_age: int | None
+    count: int
+
+
+class ConditionCount(SQLModel):
+    name: str
+    count: int
+
+
 class PatientStats(SQLModel):
     total: int
     by_status: StatusCounts
     seen_last_30_days: int
+    # Every band is listed, youngest first, including those with nobody in them.
+    by_age_band: list[AgeBandCount]
+    # The most common conditions, most common first.
+    top_conditions: list[ConditionCount]
 
 
 class ChartField(StrEnum):
