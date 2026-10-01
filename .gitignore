@@ -11,6 +11,7 @@ __pycache__/
 # Node
 node_modules/
 dist/
+dist-e2e/
 
 # Generated on the way to frontend/src/api/schema.d.ts
 frontend/openapi.json

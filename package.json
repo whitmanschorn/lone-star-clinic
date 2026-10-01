@@ -7,7 +7,7 @@
     "db": "docker compose up -d db",
     "api": "cd backend && .venv/bin/python -m app.prestart && .venv/bin/uvicorn app.main:app --reload --port 8000",
     "web": "npm --prefix frontend run dev",
-    "gen:types": "cd backend && .venv/bin/python -m app.export_openapi > ../frontend/openapi.json && cd .. && openapi-typescript frontend/openapi.json -o frontend/src/api/schema.d.ts",
+    "gen:types": "cd backend && .venv/bin/python -m app.export_openapi > ../frontend/openapi.json && cd .. && openapi-typescript frontend/openapi.json --default-non-nullable false -o frontend/src/api/schema.d.ts",
     "test": "playwright test",
     "test:api": "playwright test --project=api",
     "test:ui": "playwright test --project=desktop --project=mobile",

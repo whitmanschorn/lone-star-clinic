@@ -8,7 +8,7 @@ import tseslint from 'typescript-eslint'
 
 export default defineConfig([
   // schema.d.ts is generated from the backend's OpenAPI document.
-  globalIgnores(['dist', 'src/api/schema.d.ts']),
+  globalIgnores(['dist', 'dist-e2e', 'src/api/schema.d.ts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

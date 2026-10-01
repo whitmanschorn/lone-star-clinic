@@ -47,6 +47,47 @@ No `.env` file is needed: every setting has a default. To change one, copy `.env
 The frontend calls the API at the relative path `/api`, which the Vite dev server proxies to
 `localhost:8000`. The backend itself serves the routes at its root, e.g. `GET /health`.
 
+## API
+
+Interactive docs are at `http://localhost:8000/docs`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/health` | `{"status": "ok"}` |
+| `GET` | `/patients` | Paginated list. Query: `page`, `page_size` (1-100), `q`, `status`, `sort`, `order` |
+| `GET` | `/patients/stats` | Counts by status, for the dashboard |
+| `GET` | `/patients/{id}` | |
+| `POST` | `/patients` | `201` with a `Location` header |
+| `PUT` | `/patients/{id}` | Replaces the whole record |
+| `DELETE` | `/patients/{id}` | `204` |
+
+- **List response:** `{ items, total, page, page_size, pages }`.
+- **Search** (`q`) is a case-insensitive substring match on full name and email. `%` and `_` are
+  treated as plain text.
+- **Sort** is one of `name`, `age`, `last_visit`, `status` (by urgency), with `order` `asc` or
+  `desc`. Ties fall back to name and then id, so paging never repeats or skips a row.
+- **Errors:** `404` with `{"detail": "Patient not found"}` for unknown ids, and `422` with
+  FastAPI's per-field error list for invalid input (including ids that are not UUIDs).
+
+## Frontend
+
+| Route | Page |
+|---|---|
+| `/` | Dashboard: counts, critical patients, recent visits |
+| `/patients` | Patient list: search, status filter, sorting, pagination |
+| `/patients/:id` | Patient record |
+| anything else | 404 page |
+
+- **Large lists:** searching, filtering, sorting and paging all happen in the database, so the
+  browser only ever holds one page of rows.
+- **Non-blocking search:** the input updates instantly from local state; the request is
+  debounced, and SWR keeps the previous rows on screen (dimmed) until the new ones arrive.
+- **Responsive:** below 768px the sidebar becomes a drawer and the table becomes a list of
+  cards with a sort picker.
+- **State:** the list's search, filter, sort and page live in a Redux slice, so they survive a
+  visit to a patient and the sidebar's status shortcuts can drive the list. Everything fetched
+  from the API is cached by SWR.
+
 ## Database
 
 - **Schema:** Alembic migrations in `backend/migrations/versions`. `python -m app.prestart`
@@ -69,7 +110,7 @@ npm run typecheck
 ```
 
 `npm test` starts its own API on port 8001 against a separate `clinic_test` database, which is
-dropped, migrated and seeded on every run, plus its own Vite server on port 5181. Tests never
+dropped, migrated and seeded on every run, plus its own build of the frontend on port 5181. Tests never
 touch your development data. The database container must be running.
 
 ## Regenerating API types

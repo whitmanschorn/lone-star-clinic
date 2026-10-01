@@ -32,6 +32,12 @@ StateCode = Annotated[str, StringConstraints(pattern=r"^[A-Z]{2}$")]
 PostalCode = Annotated[str, StringConstraints(pattern=r"^\d{5}(-\d{4})?$")]
 
 
+# For response-only models: every field is always present in a response, so
+# mark fields with defaults as required in the OpenAPI schema. Generated
+# clients then see `email: string | null` rather than `email?: string | null`.
+RESPONSE_MODEL = {"json_schema_serialization_defaults_required": True}
+
+
 def utcnow() -> datetime:
     return datetime.now(UTC)
 
@@ -137,6 +143,8 @@ class PatientCreate(PatientBase):
 
 
 class PatientPublic(PatientBase):
+    model_config = RESPONSE_MODEL  # type: ignore[assignment]
+
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
@@ -145,3 +153,33 @@ class PatientPublic(PatientBase):
     @property
     def age(self) -> int:
         return age_on(self.date_of_birth, date.today())
+
+
+class PatientsPage(SQLModel):
+    """One page of the patient list, plus what the client needs to page through it."""
+
+    items: list[PatientPublic]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+
+
+class StatusCounts(SQLModel):
+    model_config = RESPONSE_MODEL  # type: ignore[assignment]
+
+    active: int = 0
+    inactive: int = 0
+    critical: int = 0
+
+
+class PatientStats(SQLModel):
+    total: int
+    by_status: StatusCounts
+    seen_last_30_days: int
+
+
+class ErrorMessage(SQLModel):
+    """Body of 4xx/5xx responses raised by the API (FastAPI's HTTPException shape)."""
+
+    detail: str

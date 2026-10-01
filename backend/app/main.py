@@ -1,14 +1,27 @@
-from fastapi import FastAPI
+import logging
+
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 
 from app.config import get_settings
-from app.routers import health
+from app.routers import health, patients
+
+logger = logging.getLogger(__name__)
 
 
 def operation_id(route: APIRoute) -> str:
     """Use the endpoint function's name, so generated clients read naturally."""
     return route.name
+
+
+async def unhandled_error(request: Request, exc: Exception) -> JSONResponse:
+    """Log unexpected errors and answer in the same JSON shape as other errors."""
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path, exc_info=exc)
+    return JSONResponse(
+        {"detail": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+    )
 
 
 def create_app() -> FastAPI:
@@ -27,7 +40,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_exception_handler(Exception, unhandled_error)
     app.include_router(health.router)
+    app.include_router(patients.router)
     return app
 
 

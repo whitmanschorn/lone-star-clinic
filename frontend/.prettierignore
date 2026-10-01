@@ -1,3 +1,4 @@
 dist
+dist-e2e
 openapi.json
 src/api/schema.d.ts

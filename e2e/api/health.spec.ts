@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { components } from '../../frontend/src/api/schema'
-
-type Health = components['schemas']['Health']
+import type { Health } from '../types'
 
 test('GET /health reports ok', async ({ request }) => {
   const response = await request.get('/health')

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 // By default the tests start their own API (port 8001, clinic_test database)
-// and their own Vite dev server (port 5181), so they never touch development
+// and their own build of the frontend (port 5181), so they never touch development
 // data. Set E2E_BASE_URL and E2E_API_URL to test an already-running stack
 // instead, e.g. the docker compose one.
 const usingExternalStack = Boolean(process.env.E2E_BASE_URL)
@@ -40,7 +40,9 @@ export default defineConfig({
           timeout: 60_000,
         },
         {
-          command: 'npm --prefix frontend run dev -- --port 5181',
+          // A production build, not the dev server: it is what ships, and it
+          // starts fast enough that the first tests do not race a cold compile.
+          command: 'npm --prefix frontend run e2e:serve',
           url: webURL,
           env: { VITE_API_PROXY_TARGET: apiURL },
           reuseExistingServer: false,
