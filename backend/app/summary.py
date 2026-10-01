@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from app.chart import describe_change
 from app.models import ChartChange, Note, Patient, PatientSummary, age_on, utcnow
+from app.text import shorten
 
 # Notes quoted in the narrative besides the first and the latest. Older ones in
 # between are counted rather than quoted, so the summary stays readable.
@@ -33,10 +34,8 @@ def join_list(items: Sequence[str]) -> str:
 
 def excerpt(content: str) -> str:
     """One note as a single tidy sentence-like fragment."""
-    text = " ".join(content.split())
-    if len(text) > MAX_EXCERPT_CHARS:
-        text = text[:MAX_EXCERPT_CHARS].rsplit(" ", 1)[0].rstrip(".,;:") + "…"
-    elif text[-1] not in ".!?":
+    text = shorten(content, MAX_EXCERPT_CHARS)
+    if text[-1] not in ".!?…":
         text += "."
     return text
 

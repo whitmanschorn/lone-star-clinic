@@ -48,3 +48,24 @@ function tidyMessage(message: string): string {
   const text = message.replace(/^Value error, /, '')
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
+
+/**
+ * Deal with a failed form submission. Validation errors (422) are put on the
+ * fields they are about. Returns the message to show above the form, if any:
+ * a network failure, conflict or server error, or a validation complaint that
+ * has no field of its own.
+ */
+export function reportSubmitError(
+  error: unknown,
+  form: { setErrors: (errors: Record<string, string>) => void },
+  isField: (path: string) => boolean,
+): string | null {
+  const errors = fieldErrors(error)
+  if (!errors) return describeError(error)
+
+  form.setErrors(errors)
+  const unplaced = Object.entries(errors)
+    .filter(([path]) => !isField(path))
+    .map(([, message]) => message)
+  return unplaced.length > 0 ? unplaced.join(' ') : null
+}

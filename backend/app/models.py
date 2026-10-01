@@ -154,12 +154,24 @@ class PatientCreate(PatientBase):
     """Request body for both POST and PUT: PUT replaces the whole record."""
 
 
+class NotePreview(SQLModel):
+    """Just enough of a note to show in a list."""
+
+    model_config = RESPONSE_MODEL  # type: ignore[assignment]
+
+    id: uuid.UUID
+    timestamp: datetime
+    excerpt: str
+
+
 class PatientPublic(PatientBase):
     model_config = RESPONSE_MODEL  # type: ignore[assignment]
 
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    # The patient's most recent note, if they have any.
+    last_note: NotePreview | None = None
 
     @computed_field
     @property
@@ -250,10 +262,12 @@ class NoteBase(SQLModel):
 
 class Note(NoteBase, table=True):
     __tablename__ = "notes"
+    # Serves both "this patient's notes, newest first" and "each patient's latest note".
+    __table_args__ = (Index("ix_notes_patient_timestamp", "patient_id", "timestamp"),)
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     # Notes belong to one patient and are deleted with them (ON DELETE CASCADE).
-    patient_id: uuid.UUID = Field(foreign_key="patients.id", ondelete="CASCADE", index=True)
+    patient_id: uuid.UUID = Field(foreign_key="patients.id", ondelete="CASCADE")
     # When the note was written, as reported by the client.
     timestamp: datetime = Field(sa_type=DateTime(timezone=True))
     # When the server stored it.

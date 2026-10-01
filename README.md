@@ -68,8 +68,11 @@ Interactive docs are at `http://localhost:8000/docs`.
 - **List response:** `{ items, total, page, page_size, pages }`.
 - **Search** (`q`) is a case-insensitive substring match on full name and email. `%` and `_` are
   treated as plain text.
-- **Sort** is one of `name`, `age`, `last_visit`, `status` (by urgency), with `order` `asc` or
-  `desc`. Ties fall back to name and then id, so paging never repeats or skips a row.
+- **Sort** is one of `name`, `age`, `last_visit`, `last_note`, `status` (by urgency), with
+  `order` `asc` or `desc`. Patients with no visit or no note sort last either way. Ties fall
+  back to name and then id, so paging never repeats or skips a row.
+- **Last note:** every patient carries `last_note` (`id`, `timestamp` and a short `excerpt`),
+  or `null`, so a list can show it without a request per row.
 - **Errors:** `404` with `{"detail": "Patient not found"}` for unknown ids, and `422` with
   FastAPI's per-field error list for invalid input (including ids that are not UUIDs).
 
@@ -114,7 +117,9 @@ same signature. Dates in the narrative use the clinic's time zone (`CLINIC_TIMEZ
 | Route | Page |
 |---|---|
 | `/` | Dashboard: counts, critical patients, recent visits |
-| `/patients` | Patient list: search, status filter, sorting, pagination |
+| `/patients` | Patient list: search, status filter, sorting, pagination, and row actions to edit a patient or add a note |
+| `/patients/new` | Create a patient (the same form, as a page, for direct links) |
+| `/patients/:id/edit` | Edit a patient (likewise) |
 | `/patients/:id` | Patient record, in three tabs: Overview, Notes (add, with optional chart updates, and delete), Summary |
 | anything else | 404 page |
 
@@ -124,9 +129,25 @@ same signature. Dates in the narrative use the clinic's time zone (`CLINIC_TIMEZ
   debounced, and SWR keeps the previous rows on screen (dimmed) until the new ones arrive.
 - **Responsive:** below 768px the sidebar becomes a drawer and the table becomes a list of
   cards with a sort picker.
-- **State:** the list's search, filter, sort and page live in a Redux slice, so they survive a
-  visit to a patient and the sidebar's status shortcuts can drive the list. Everything fetched
-  from the API is cached by SWR.
+- **Working from the list:** "New patient", and each row's Edit and Add note, open a modal
+  over the list, so several patients can be worked on without leaving it. The patient page's
+  Edit button opens the same modal.
+- **Stale-while-revalidate, made visible:** when a save succeeds, the server's copy is written
+  straight into SWR's cache, so the record and any list row showing it change at once. SWR then
+  refetches in the background, which settles sort order, filters and counts. While that runs,
+  the list shows "Updating…" and dims its rows, and the changed row is highlighted briefly.
+  The cache logic is in `frontend/src/api/hooks.ts` (`patientSaved`, `noteAdded`).
+- **Forms:** one `PatientForm` serves create and edit, validated in the browser by a zod
+  schema (`frontend/src/lib/patientForm.ts`) that mirrors the backend's rules and is typed
+  against the generated `PatientCreate`. Fields are checked as you leave them and again on
+  submit; empty optional fields are sent as `null`.
+- **Errors:** the server validates everything again. Its `422` errors are shown on the fields
+  they name, a `409` conflict or `5xx` is explained above the form, and so is a network
+  failure. The form keeps what was typed in every case, so retrying is pressing the button
+  again. Failed page loads show a "Try again" button.
+- **State:** Redux holds client-side UI state only: the list's search, filter, sort and page
+  (so they survive a visit to a patient, and the sidebar's status shortcuts can drive the
+  list), and which modal is open. Everything fetched from the API is cached by SWR.
 
 ## Database
 

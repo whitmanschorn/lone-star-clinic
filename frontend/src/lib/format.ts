@@ -20,6 +20,11 @@ export function formatDateTime(isoDateTime: string): string {
   return dateTimeFormat.format(new Date(isoDateTime))
 }
 
+/** The calendar day of an API timestamp, in the viewer's time zone. */
+export function formatDay(isoDateTime: string): string {
+  return dateFormat.format(new Date(isoDateTime))
+}
+
 export function fullName(patient: Pick<Patient, 'first_name' | 'last_name'>): string {
   return `${patient.first_name} ${patient.last_name}`
 }

@@ -33,8 +33,13 @@ test.describe('chart changes made with a note', () => {
     const response = await postNote(request, patient.id, undefined)
 
     expect(response.status()).toBe(201)
-    expect(((await response.json()) as Note).changes).toEqual([])
-    expect(await getPatient(request, patient.id)).toEqual(patient)
+    const note = (await response.json()) as Note
+    expect(note.changes).toEqual([])
+    // Only the patient's "last note" moves; the chart and updated_at do not.
+    expect(await getPatient(request, patient.id)).toEqual({
+      ...patient,
+      last_note: { id: note.id, timestamp: note.timestamp, excerpt: 'Visit.' },
+    })
   })
 
   test('adds a new condition, medication and allergy', async ({ request }) => {

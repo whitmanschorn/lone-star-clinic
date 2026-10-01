@@ -22,7 +22,8 @@ test.describe('patient list', () => {
       'Age',
       'Last visit',
       'Status',
-      'City',
+      'Last note',
+      'Actions',
     ])
     await expect(page.getByText(/^Showing 1–20 of \d+$/)).toBeVisible()
 

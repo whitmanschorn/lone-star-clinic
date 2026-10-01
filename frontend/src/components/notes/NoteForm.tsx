@@ -7,12 +7,14 @@ import { ApiError } from '../../api/client'
 import { addNote } from '../../api/mutations'
 import type { ChartChange, ChartField, Note, Patient } from '../../api/types'
 import { CHART_FIELDS, singular } from '../../lib/chart'
-import { describeError, fieldErrors } from '../../lib/errors'
+import { reportSubmitError } from '../../lib/errors'
 import { toDateTimeInputValue } from '../../lib/format'
 import { ChartChangeRow, type ChartChangeDraft } from './ChartChangeRow'
 
 const MAX_NOTE_LENGTH = 5000
 const MAX_ENTRY_LENGTH = 100
+/** Form paths that have an input to show an error under. */
+const NOTE_FIELD = /^(content|timestamp|changes\.\d+\.(value|new_value))$/
 
 interface NoteFormValues {
   content: string
@@ -134,22 +136,11 @@ export function NoteForm({ patient, onAdded, onConflict }: NoteFormProps) {
       form.resetTouched()
       onAdded(note)
     } catch (error) {
-      // Show the server's own complaints on the fields they are about;
-      // anything else (network, conflict, 5xx) goes above the form. What was
-      // typed is kept either way, so nothing is lost.
-      const errors = fieldErrors(error)
-      if (errors) {
-        form.setErrors(errors)
-        // Complaints about a whole chart update rather than one of its inputs
-        // have no field to sit under, so list them above the form.
-        const unplaced = Object.entries(errors)
-          .filter(([path]) => !/^(content|timestamp|changes\.\d+\.(value|new_value))$/.test(path))
-          .map(([, message]) => message)
-        if (unplaced.length > 0) setFailure(unplaced.join(' '))
-      } else {
-        setFailure(describeError(error))
-        if (error instanceof ApiError && error.status === 409) onConflict()
-      }
+      // Server complaints go on the fields they are about; anything else
+      // (network, conflict, 5xx) goes above the form. What was typed is kept
+      // either way, so nothing is lost.
+      setFailure(reportSubmitError(error, form, (path) => NOTE_FIELD.test(path)))
+      if (error instanceof ApiError && error.status === 409) onConflict()
     } finally {
       setSaving(false)
     }

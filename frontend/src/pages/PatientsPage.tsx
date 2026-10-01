@@ -10,12 +10,15 @@ import {
   Title,
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
+import { IconPlus } from '@tabler/icons-react'
 import { useEffect } from 'react'
 import { usePatients } from '../api/hooks'
 import { ErrorState } from '../components/ErrorState'
 import { PatientCards } from '../components/patients/PatientCards'
 import { PatientListControls } from '../components/patients/PatientListControls'
 import { PatientTable } from '../components/patients/PatientTable'
+import { RefreshIndicator } from '../components/RefreshIndicator'
+import { usePatientModals } from '../lib/usePatientModals'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import {
   filtersCleared,
@@ -25,6 +28,7 @@ import {
   selectPatientListParams,
   sortToggled,
 } from '../store/patientListSlice'
+import { selectHighlightedPatientId } from '../store/uiSlice'
 
 const PAGE_SIZES = ['10', '20', '50', '100']
 
@@ -33,6 +37,8 @@ export function PatientsPage() {
   const { search, status, sort, order, page, pageSize } = useAppSelector(selectPatientList)
   const params = useAppSelector(selectPatientListParams)
   const { data, error, isLoading, isValidating, mutate } = usePatients(params)
+  const highlightedId = useAppSelector(selectHighlightedPatientId)
+  const { openCreate, openEdit, openNote } = usePatientModals()
 
   // Render either the table or the cards, never both, so only one copy of
   // each patient is in the document.
@@ -53,15 +59,22 @@ export function PatientsPage() {
 
   return (
     <Stack gap="md">
-      <Group justify="space-between" align="baseline">
-        <Title order={2}>Patients</Title>
-        <Text c="dimmed" size="sm" aria-live="polite">
-          {data
-            ? data.total === 0
-              ? 'No patients'
-              : `Showing ${firstRow}–${lastRow} of ${data.total}`
-            : ' '}
-        </Text>
+      <Group justify="space-between" align="center">
+        <Group align="baseline" gap="sm">
+          <Title order={2}>Patients</Title>
+          <Text c="dimmed" size="sm" aria-live="polite">
+            {data
+              ? data.total === 0
+                ? 'No patients'
+                : `Showing ${firstRow}–${lastRow} of ${data.total}`
+              : ' '}
+          </Text>
+          {/* Rows are on screen but a fresher copy is being fetched. */}
+          <RefreshIndicator active={isValidating && data !== undefined} />
+        </Group>
+        <Button leftSection={<IconPlus size={16} />} onClick={openCreate}>
+          New patient
+        </Button>
       </Group>
 
       <PatientListControls busy={isValidating} showSort={isNarrow} />
@@ -103,7 +116,12 @@ export function PatientsPage() {
           {/* Dim, rather than replace, the rows while the next result loads. */}
           <div style={{ opacity: isValidating ? 0.6 : 1, transition: 'opacity 150ms' }}>
             {isNarrow ? (
-              <PatientCards patients={data.items} />
+              <PatientCards
+                patients={data.items}
+                highlightedId={highlightedId}
+                onAddNote={openNote}
+                onEdit={openEdit}
+              />
             ) : (
               <Card withBorder padding={0}>
                 <PatientTable
@@ -111,6 +129,9 @@ export function PatientsPage() {
                   sort={sort}
                   order={order}
                   onSort={(column) => dispatch(sortToggled(column))}
+                  highlightedId={highlightedId}
+                  onAddNote={openNote}
+                  onEdit={openEdit}
                 />
               </Card>
             )}

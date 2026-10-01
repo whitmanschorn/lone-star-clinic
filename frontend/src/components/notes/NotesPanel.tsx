@@ -3,7 +3,12 @@ import { notifications } from '@mantine/notifications'
 import { IconClipboardText, IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useSWRConfig } from 'swr'
-import { revalidateAllPatients, revalidatePatient, usePatientNotes } from '../../api/hooks'
+import {
+  noteAdded,
+  revalidateAllPatients,
+  revalidatePatient,
+  usePatientNotes,
+} from '../../api/hooks'
 import { deleteNote } from '../../api/mutations'
 import type { Note, Patient } from '../../api/types'
 import { describeChange } from '../../lib/chart'
@@ -76,9 +81,10 @@ export function NotesPanel({ patient }: { patient: Patient }) {
       })
     } finally {
       setDeleting(false)
-      // Whether it worked or not, show what the server now has. This also
-      // refreshes the summary, which is built from the notes.
-      await revalidatePatient(mutateCache, patientId)
+      // Whether it worked or not, show what the server now has. That covers
+      // the summary, which is built from the notes, and the patient's "last
+      // note" in the lists.
+      await revalidateAllPatients(mutateCache)
     }
   }
 
@@ -88,15 +94,13 @@ export function NotesPanel({ patient }: { patient: Patient }) {
         <NoteForm
           patient={patient}
           onAdded={(note) => {
-            const updatedChart = note.changes.length > 0
             notifications.show({
-              message: updatedChart ? 'Note added and chart updated' : 'Note added',
+              message: note.changes.length > 0 ? 'Note added and chart updated' : 'Note added',
               color: 'teal',
             })
-            // A chart change also shows up in lists and on the dashboard.
-            void (updatedChart
-              ? revalidateAllPatients(mutateCache)
-              : revalidatePatient(mutateCache, patientId))
+            // The note changes this patient's record and summary, and their
+            // "last note" in the lists.
+            void noteAdded(mutateCache, patientId, note)
           }}
           // The chart on screen was out of date; fetch the current one.
           onConflict={() => void revalidatePatient(mutateCache, patientId)}

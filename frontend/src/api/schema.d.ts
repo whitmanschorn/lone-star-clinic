@@ -212,6 +212,24 @@ export interface components {
              */
             changes?: components["schemas"]["ChartChange"][];
         };
+        /**
+         * NotePreview
+         * @description Just enough of a note to show in a list.
+         */
+        NotePreview: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+            /** Excerpt */
+            excerpt: string;
+        };
         /** NotePublic */
         NotePublic: {
             /** Content */
@@ -326,6 +344,7 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            last_note: components["schemas"]["NotePreview"] | null;
             /** Age */
             readonly age: number;
         };
@@ -333,7 +352,7 @@ export interface components {
          * PatientSort
          * @enum {string}
          */
-        PatientSort: "name" | "age" | "last_visit" | "status";
+        PatientSort: "name" | "age" | "last_visit" | "last_note" | "status";
         /** PatientStats */
         PatientStats: {
             /** Total */

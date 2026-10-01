@@ -1,8 +1,10 @@
 import { AppShell, Burger, Button, Group } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
+import { Notifications } from '@mantine/notifications'
 import { Link, Outlet, useMatch } from 'react-router'
 import { ApiStatus } from '../ApiStatus'
 import { Brand } from '../Brand'
+import { PatientModals } from '../patients/PatientModals'
 import { Sidebar } from './Sidebar'
 
 function HeaderLink({ to, end, label }: { to: string; end?: boolean; label: string }) {
@@ -58,6 +60,10 @@ export function AppLayout() {
       <AppShell.Main>
         <Outlet />
       </AppShell.Main>
+
+      <PatientModals />
+      {/* Rendered inside the router so a notification can link to a page. */}
+      <Notifications />
     </AppShell>
   )
 }

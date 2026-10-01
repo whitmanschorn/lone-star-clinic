@@ -1,9 +1,15 @@
-import { Anchor, Group, Table, Text, UnstyledButton } from '@mantine/core'
-import { IconArrowDown, IconArrowUp, IconArrowsSort } from '@tabler/icons-react'
+import { ActionIcon, Anchor, Group, Table, Text, Tooltip, UnstyledButton } from '@mantine/core'
+import {
+  IconArrowDown,
+  IconArrowUp,
+  IconArrowsSort,
+  IconNotes,
+  IconPencil,
+} from '@tabler/icons-react'
 import { memo } from 'react'
 import { Link, useNavigate } from 'react-router'
 import type { Patient, PatientSort, SortOrder } from '../../api/types'
-import { formatDate, fullName } from '../../lib/format'
+import { formatDate, formatDay, fullName } from '../../lib/format'
 import { StatusBadge } from './StatusBadge'
 
 interface SortableHeaderProps {
@@ -29,16 +35,35 @@ function SortableHeader({ column, label, sort, order, onSort }: SortableHeaderPr
   )
 }
 
+interface PatientRowProps {
+  patient: Patient
+  /** True for a moment after this patient was changed. */
+  highlighted: boolean
+  onAddNote: (patient: Patient) => void
+  onEdit: (patient: Patient) => void
+}
+
 // Memoised so rows that did not change are skipped when the list re-renders
 // (every keystroke in the search box re-renders the page around it).
-const PatientRow = memo(function PatientRow({ patient }: { patient: Patient }) {
+const PatientRow = memo(function PatientRow({
+  patient,
+  highlighted,
+  onAddNote,
+  onEdit,
+}: PatientRowProps) {
   const navigate = useNavigate()
   const href = `/patients/${patient.id}`
+  const name = fullName(patient)
   return (
-    <Table.Tr onClick={() => void navigate(href)} style={{ cursor: 'pointer' }}>
+    <Table.Tr
+      onClick={() => void navigate(href)}
+      data-highlighted={highlighted || undefined}
+      bg={highlighted ? 'yellow.1' : undefined}
+      style={{ cursor: 'pointer', transition: 'background-color 600ms' }}
+    >
       <Table.Td>
         <Anchor component={Link} to={href} fw={500} onClick={(event) => event.stopPropagation()}>
-          {fullName(patient)}
+          {name}
         </Anchor>
       </Table.Td>
       <Table.Td>{patient.age}</Table.Td>
@@ -46,10 +71,42 @@ const PatientRow = memo(function PatientRow({ patient }: { patient: Patient }) {
       <Table.Td>
         <StatusBadge status={patient.status} />
       </Table.Td>
-      <Table.Td visibleFrom="md">
-        <Text size="sm" c="dimmed">
-          {patient.city ?? '—'}
-        </Text>
+      <Table.Td maw={260}>
+        {patient.last_note ? (
+          <>
+            <Text size="sm">{formatDay(patient.last_note.timestamp)}</Text>
+            <Text size="xs" c="dimmed" lineClamp={1} title={patient.last_note.excerpt}>
+              {patient.last_note.excerpt}
+            </Text>
+          </>
+        ) : (
+          <Text size="sm" c="dimmed">
+            No notes
+          </Text>
+        )}
+      </Table.Td>
+      {/* Clicks on the actions must not also open the patient's page. */}
+      <Table.Td onClick={(event) => event.stopPropagation()} style={{ cursor: 'default' }}>
+        <Group gap={4} wrap="nowrap" justify="flex-end">
+          <Tooltip label="Add a note">
+            <ActionIcon
+              variant="subtle"
+              aria-label={`Add a note for ${name}`}
+              onClick={() => onAddNote(patient)}
+            >
+              <IconNotes size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Edit">
+            <ActionIcon
+              variant="subtle"
+              aria-label={`Edit ${name}`}
+              onClick={() => onEdit(patient)}
+            >
+              <IconPencil size={18} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
       </Table.Td>
     </Table.Tr>
   )
@@ -60,26 +117,50 @@ interface PatientTableProps {
   sort: PatientSort
   order: SortOrder
   onSort: (column: PatientSort) => void
+  highlightedId: string | null
+  onAddNote: (patient: Patient) => void
+  onEdit: (patient: Patient) => void
 }
 
-export function PatientTable({ patients, sort, order, onSort }: PatientTableProps) {
+export function PatientTable({
+  patients,
+  sort,
+  order,
+  onSort,
+  highlightedId,
+  onAddNote,
+  onEdit,
+}: PatientTableProps) {
   const header = { sort, order, onSort }
   return (
-    <Table highlightOnHover verticalSpacing="sm">
-      <Table.Thead>
-        <Table.Tr>
-          <SortableHeader column="name" label="Name" {...header} />
-          <SortableHeader column="age" label="Age" {...header} />
-          <SortableHeader column="last_visit" label="Last visit" {...header} />
-          <SortableHeader column="status" label="Status" {...header} />
-          <Table.Th visibleFrom="md">City</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {patients.map((patient) => (
-          <PatientRow key={patient.id} patient={patient} />
-        ))}
-      </Table.Tbody>
-    </Table>
+    <Table.ScrollContainer minWidth={640}>
+      <Table highlightOnHover verticalSpacing="sm">
+        <Table.Thead>
+          <Table.Tr>
+            <SortableHeader column="name" label="Name" {...header} />
+            <SortableHeader column="age" label="Age" {...header} />
+            <SortableHeader column="last_visit" label="Last visit" {...header} />
+            <SortableHeader column="status" label="Status" {...header} />
+            <SortableHeader column="last_note" label="Last note" {...header} />
+            <Table.Th>
+              <Text span size="sm" fw={700} style={{ display: 'block', textAlign: 'right' }}>
+                Actions
+              </Text>
+            </Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {patients.map((patient) => (
+            <PatientRow
+              key={patient.id}
+              patient={patient}
+              highlighted={patient.id === highlightedId}
+              onAddNote={onAddNote}
+              onEdit={onEdit}
+            />
+          ))}
+        </Table.Tbody>
+      </Table>
+    </Table.ScrollContainer>
   )
 }

@@ -6,11 +6,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import ColumnElement, case, or_
-from sqlmodel import col, func, select
+from sqlalchemy.orm import aliased
+from sqlmodel import Session, col, func, select
 
 from app.db import SessionDep
 from app.models import (
     ErrorMessage,
+    Note,
+    NotePreview,
     Patient,
     PatientCreate,
     PatientPublic,
@@ -20,16 +23,22 @@ from app.models import (
     StatusCounts,
     utcnow,
 )
+from app.text import shorten
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 
 NOT_FOUND = {status.HTTP_404_NOT_FOUND: {"model": ErrorMessage}}
 
 
+# Longest note excerpt sent with a patient.
+NOTE_PREVIEW_CHARS = 120
+
+
 class PatientSort(StrEnum):
     NAME = "name"
     AGE = "age"
     LAST_VISIT = "last_visit"
+    LAST_NOTE = "last_note"
     STATUS = "status"
 
 
@@ -46,6 +55,38 @@ def get_patient_or_404(patient_id: uuid.UUID, session: SessionDep) -> Patient:
 
 
 PatientDep = Annotated[Patient, Depends(get_patient_or_404)]
+
+# Each patient's most recent note: DISTINCT ON keeps the first row per patient
+# in (timestamp, created_at) descending order.
+_latest_notes = (
+    select(Note)
+    .distinct(col(Note.patient_id))
+    .order_by(col(Note.patient_id), col(Note.timestamp).desc(), col(Note.created_at).desc())
+    .subquery()
+)
+LatestNote = aliased(Note, _latest_notes)
+
+
+def latest_note(session: Session, patient: Patient) -> Note | None:
+    return session.exec(
+        select(Note)
+        .where(Note.patient_id == patient.id)
+        .order_by(col(Note.timestamp).desc(), col(Note.created_at).desc())
+        .limit(1)
+    ).first()
+
+
+def to_public(patient: Patient, last_note: Note | None) -> PatientPublic:
+    preview = (
+        NotePreview(
+            id=last_note.id,
+            timestamp=last_note.timestamp,
+            excerpt=shorten(last_note.content, NOTE_PREVIEW_CHARS),
+        )
+        if last_note
+        else None
+    )
+    return PatientPublic.model_validate(patient, update={"last_note": preview})
 
 
 def search_filter(q: str) -> ColumnElement[bool]:
@@ -77,6 +118,9 @@ def sort_columns(sort: PatientSort, order: SortOrder) -> list[ColumnElement]:
         case PatientSort.LAST_VISIT:
             # Patients who have never visited go last in either direction.
             primary = [directed(col(Patient.last_visit)).nulls_last()]
+        case PatientSort.LAST_NOTE:
+            # Likewise patients with no notes.
+            primary = [directed(col(LatestNote.timestamp)).nulls_last()]
         case PatientSort.STATUS:
             # Order by urgency, not alphabetically.
             urgency = case(
@@ -106,8 +150,9 @@ def list_patients(
         filters.append(col(Patient.status) == status)
 
     total = session.exec(select(func.count()).select_from(Patient).where(*filters)).one()
-    patients = session.exec(
-        select(Patient)
+    rows = session.exec(
+        select(Patient, LatestNote)
+        .outerjoin(LatestNote, col(LatestNote.patient_id) == col(Patient.id))
         .where(*filters)
         .order_by(*sort_columns(sort, order))
         .offset((page - 1) * page_size)
@@ -115,7 +160,7 @@ def list_patients(
     ).all()
 
     return PatientsPage(
-        items=[PatientPublic.model_validate(patient) for patient in patients],
+        items=[to_public(patient, last_note) for patient, last_note in rows],
         total=total,
         page=page,
         page_size=page_size,
@@ -139,30 +184,30 @@ def patient_stats(session: SessionDep) -> PatientStats:
     )
 
 
-@router.get("/{patient_id}", response_model=PatientPublic, responses=NOT_FOUND)
-def get_patient(patient: PatientDep) -> Patient:
-    return patient
+@router.get("/{patient_id}", responses=NOT_FOUND)
+def get_patient(patient: PatientDep, session: SessionDep) -> PatientPublic:
+    return to_public(patient, latest_note(session, patient))
 
 
-@router.post("", response_model=PatientPublic, status_code=status.HTTP_201_CREATED)
-def create_patient(body: PatientCreate, session: SessionDep, response: Response) -> Patient:
+@router.post("", status_code=status.HTTP_201_CREATED)
+def create_patient(body: PatientCreate, session: SessionDep, response: Response) -> PatientPublic:
     patient = Patient.model_validate(body)
     session.add(patient)
     session.commit()
     session.refresh(patient)
     response.headers["Location"] = f"/patients/{patient.id}"
-    return patient
+    return to_public(patient, None)
 
 
-@router.put("/{patient_id}", response_model=PatientPublic, responses=NOT_FOUND)
-def update_patient(patient: PatientDep, body: PatientCreate, session: SessionDep) -> Patient:
+@router.put("/{patient_id}", responses=NOT_FOUND)
+def update_patient(patient: PatientDep, body: PatientCreate, session: SessionDep) -> PatientPublic:
     """Replace the whole record: fields left out of the body go back to their defaults."""
     patient.sqlmodel_update(body.model_dump())
     patient.updated_at = utcnow()
     session.add(patient)
     session.commit()
     session.refresh(patient)
-    return patient
+    return to_public(patient, latest_note(session, patient))
 
 
 @router.delete("/{patient_id}", status_code=status.HTTP_204_NO_CONTENT, responses=NOT_FOUND)

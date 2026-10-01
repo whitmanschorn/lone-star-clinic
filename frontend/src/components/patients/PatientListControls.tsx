@@ -30,6 +30,7 @@ const SORT_LABELS: Record<PatientSort, string> = {
   name: 'Name',
   age: 'Age',
   last_visit: 'Last visit',
+  last_note: 'Last note',
   status: 'Status',
 }
 
