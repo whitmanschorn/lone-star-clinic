@@ -29,6 +29,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clinic}
       POSTGRES_DB: ${POSTGRES_DB:-clinic}
       CLINIC_TIMEZONE: ${CLINIC_TIMEZONE:-America/Chicago}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:

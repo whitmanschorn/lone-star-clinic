@@ -107,10 +107,10 @@ def sort_columns(sort: PatientSort, order: SortOrder) -> list[ColumnElement]:
     def directed(column: ColumnElement) -> ColumnElement:
         return column.desc() if descending else column.asc()
 
-    name = [directed(col(Patient.last_name)), directed(col(Patient.first_name))]
+    by_name = [col(Patient.last_name).asc(), col(Patient.first_name).asc()]
     match sort:
         case PatientSort.NAME:
-            primary = []
+            primary = [directed(col(Patient.last_name)), directed(col(Patient.first_name))]
         case PatientSort.AGE:
             # Older means an earlier date of birth, so the direction flips.
             dob = col(Patient.date_of_birth)
@@ -129,8 +129,9 @@ def sort_columns(sort: PatientSort, order: SortOrder) -> list[ColumnElement]:
                 else_=2,
             )
             primary = [directed(urgency)]
-    # Name, then id, keeps the order stable so paging never repeats or skips a row.
-    return [*primary, *name, col(Patient.id).asc()]
+    # Ties are broken by name, always A to Z, then by id, which keeps the order
+    # stable so paging never repeats or skips a row.
+    return [*primary, *by_name, col(Patient.id).asc()]
 
 
 @router.get("")

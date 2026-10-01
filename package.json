@@ -12,7 +12,8 @@
     "test:api": "playwright test --project=api",
     "test:ui": "playwright test --project=desktop --project=mobile",
     "typecheck": "npm --prefix frontend run typecheck && tsc -p e2e",
-    "lint": "npm --prefix frontend run lint && npm --prefix frontend run format:check && cd backend && .venv/bin/ruff check . && .venv/bin/ruff format --check ."
+    "lint": "npm --prefix frontend run lint && npm --prefix frontend run format:check && cd backend && .venv/bin/ruff check . && .venv/bin/ruff format --check .",
+    "test:unit": "cd backend && .venv/bin/pytest -q"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

@@ -21,6 +21,8 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5180", "http://localhost:8080"]
 
+    log_level: str = "INFO"
+
     # Used wherever a timestamp has to be shown as a calendar date, e.g. the
     # dates quoted in a patient summary.
     clinic_timezone: str = "America/Chicago"

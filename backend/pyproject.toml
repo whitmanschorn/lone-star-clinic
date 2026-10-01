@@ -19,3 +19,7 @@ select = [
 "migrations/versions/*.py" = ["F401"]
 # Clinical notes are prose; wrapping them mid-sentence makes them harder to read.
 "app/seed_data.py" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

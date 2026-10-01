@@ -109,11 +109,28 @@ Interactive docs are at http://localhost:8000/docs.
   treated as plain text.
 - **Sort** is one of `name`, `age`, `last_visit`, `last_note`, `status` (by urgency), with
   `order` `asc` or `desc`. Patients with no visit or no note sort last either way. Ties fall
-  back to name and then id, so paging never repeats or skips a row.
+  back to name (A to Z) and then id, so paging never repeats or skips a row.
 - **Last note:** every patient carries `last_note` (`id`, `timestamp` and a short `excerpt`),
   or `null`, so a list can show it without a request per row.
 - **Errors:** `404` with `{"detail": "Patient not found"}` for unknown ids, and `422` with
   FastAPI's per-field error list for invalid input (including ids that are not UUIDs).
+
+### Request logging
+
+Every request is logged on one line by an ASGI middleware (`backend/app/middleware.py`):
+
+```
+2026-10-01 11:44:28,964 INFO [app.access] [from-proxy-123] method=GET path=/patients/stats status=200 duration_ms=16.8 client=172.18.0.4
+```
+
+- **Request id:** each request gets an id, returned in the `X-Request-ID` response header and
+  stamped on every log line written while the request is handled, so one request can be
+  followed through the log. An id supplied by a proxy is kept if it is short and plain (nginx
+  sets one in the compose stack); anything else is replaced, so a caller cannot forge log lines.
+- **No query strings:** searches contain patient names, which do not belong in logs.
+- **Levels:** `5xx` responses are logged at `ERROR` and health checks at `DEBUG`; everything
+  else at `INFO`. Set `LOG_LEVEL` to change what is shown.
+- Behind nginx, `client` is the proxy's address.
 
 ### Updating the chart with a note
 
@@ -207,6 +224,7 @@ above:
 npm install
 npx playwright install chromium   # first time only
 npm test                          # API + desktop + mobile projects
+npm run test:unit                 # pytest unit tests for the backend (no database needed)
 npm run lint                      # ESLint, Prettier, Ruff
 npm run typecheck
 ```

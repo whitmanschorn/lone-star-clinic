@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { expect, test, type APIRequestContext } from '@playwright/test'
 import { createPatient, deletePatient } from '../helpers'
 import type { Note, Patient, PatientsPage } from '../types'
@@ -142,10 +143,36 @@ test.describe('GET /patients?sort=last_note', () => {
   })
 
   test('pages do not repeat or skip patients', async ({ request }) => {
-    const first = await list(request, 'sort=last_note&order=desc&page_size=10&page=1')
-    const second = await list(request, 'sort=last_note&order=desc&page_size=10&page=2')
+    // Its own six patients, found by a shared marker, so notes added by other
+    // tests running in parallel cannot reshuffle the rows between the two reads.
+    const marker = `Testcase-${randomUUID().slice(0, 8)}`
+    const patients = await Promise.all(
+      ['a', 'b', 'c', 'd', 'e', 'f'].map((suffix) =>
+        createPatient(request, { last_name: `${marker}-${suffix}` }),
+      ),
+    )
+    try {
+      // Three with notes (two sharing a timestamp, to exercise the tiebreak), three without.
+      const stamps = ['2026-03-01T15:00:00Z', '2026-03-01T15:00:00Z', '2026-05-01T15:00:00Z']
+      for (const [index, timestamp] of stamps.entries()) {
+        await addNote(request, patients[index]!.id, 'Visit.', timestamp)
+      }
 
-    const ids = new Set([...first.items, ...second.items].map((patient) => patient.id))
-    expect(ids.size).toBe(20)
+      const first = await list(request, `q=${marker}&sort=last_note&order=desc&page_size=3&page=1`)
+      const second = await list(request, `q=${marker}&sort=last_note&order=desc&page_size=3&page=2`)
+
+      expect(first.total).toBe(6)
+      const ids = [...first.items, ...second.items].map((patient) => patient.id)
+      expect(new Set(ids).size).toBe(6)
+      // The noted patients fill the first page; the rest follow in name order.
+      expect(first.items.every((patient) => patient.last_note !== null)).toBe(true)
+      expect(second.items.map((patient) => patient.last_name)).toEqual([
+        `${marker}-d`,
+        `${marker}-e`,
+        `${marker}-f`,
+      ])
+    } finally {
+      await Promise.all(patients.map((patient) => deletePatient(request, patient.id)))
+    }
   })
 })

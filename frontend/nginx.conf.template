@@ -24,6 +24,8 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # One id per request, logged by the API and returned to the browser.
+        proxy_set_header X-Request-ID $request_id;
         # Location headers from the API get the /api prefix back (see the map
         # above). proxy_redirect is not used for this because it would make
         # them absolute, with this server's internal host and port.
