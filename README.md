@@ -314,6 +314,9 @@ To run the same tests against the containers from the quick start instead:
 E2E_BASE_URL=http://localhost:8080 E2E_API_URL=http://localhost:8000 npm test
 ```
 
+The tests assume a freshly seeded database and no LLM keys set, so run them against a new
+stack (`docker compose down -v` first) rather than one you have been using.
+
 ## Regenerating API types
 
 After changing a request or response model in the backend:
