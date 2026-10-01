@@ -22,5 +22,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 8080
 
+# 127.0.0.1, not localhost: busybox wget tries ::1 first and nginx only
+# listens on IPv4, so the probe would always be refused.
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=10 \
-    CMD wget -q -O /dev/null http://localhost:8080/ || exit 1
+    CMD wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1
