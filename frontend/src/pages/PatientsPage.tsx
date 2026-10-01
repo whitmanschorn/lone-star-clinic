@@ -18,9 +18,12 @@ import { PatientCards } from '../components/patients/PatientCards'
 import { PatientListControls } from '../components/patients/PatientListControls'
 import { PatientTable } from '../components/patients/PatientTable'
 import { RefreshIndicator } from '../components/RefreshIndicator'
+import { PAGE_SIZES } from '../lib/patientListUrl'
+import { usePatientListUrlSync } from '../lib/usePatientListUrlSync'
 import { usePatientModals } from '../lib/usePatientModals'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import {
+  activeFilterGroups,
   filtersCleared,
   pageChanged,
   pageSizeChanged,
@@ -30,11 +33,10 @@ import {
 } from '../store/patientListSlice'
 import { selectHighlightedPatientId } from '../store/uiSlice'
 
-const PAGE_SIZES = ['10', '20', '50', '100']
-
 export function PatientsPage() {
   const dispatch = useAppDispatch()
-  const { search, status, sort, order, page, pageSize } = useAppSelector(selectPatientList)
+  usePatientListUrlSync()
+  const { search, status, filters, sort, order, page, pageSize } = useAppSelector(selectPatientList)
   const params = useAppSelector(selectPatientListParams)
   const { data, error, isLoading, isValidating, mutate } = usePatients(params)
   const highlightedId = useAppSelector(selectHighlightedPatientId)
@@ -53,7 +55,8 @@ export function PatientsPage() {
     }
   }, [dispatch, lastPage, page])
 
-  const hasFilters = search.trim() !== '' || status !== null
+  const hasFilters =
+    search.trim() !== '' || status !== null || activeFilterGroups(filters).length > 0
   const firstRow = data && data.total > 0 ? (data.page - 1) * data.page_size + 1 : 0
   const lastRow = data ? firstRow + data.items.length - 1 : 0
 
@@ -93,12 +96,12 @@ export function PatientsPage() {
             <Text fw={600}>No patients found</Text>
             <Text c="dimmed" size="sm">
               {hasFilters
-                ? 'Nobody matches the current search and filter.'
+                ? 'Nobody matches the current search and filters.'
                 : 'There are no patients yet.'}
             </Text>
             {hasFilters && (
               <Button variant="light" size="xs" onClick={() => dispatch(filtersCleared())}>
-                Clear search and filter
+                Clear search and filters
               </Button>
             )}
           </Stack>
@@ -147,7 +150,10 @@ export function PatientsPage() {
             />
             <Select
               aria-label="Patients per page"
-              data={PAGE_SIZES.map((size) => ({ value: size, label: `${size} per page` }))}
+              data={PAGE_SIZES.map((size) => ({
+                value: String(size),
+                label: `${size} per page`,
+              }))}
               value={String(pageSize)}
               allowDeselect={false}
               onChange={(value) => value && dispatch(pageSizeChanged(Number(value)))}

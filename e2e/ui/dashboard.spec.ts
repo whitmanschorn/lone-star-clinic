@@ -34,7 +34,8 @@ test('a stat card opens the patient list with that status applied', async ({ pag
 
   await page.getByRole('link', { name: /^Critical: / }).click()
 
-  await expect(page).toHaveURL('/patients')
+  // The filter is part of the address, so this view can be bookmarked.
+  await expect(page).toHaveURL('/patients?status=critical')
   await expect(page.getByRole('radio', { name: 'Critical' })).toBeChecked()
   const statuses = page
     .getByRole('row')

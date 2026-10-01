@@ -1,11 +1,10 @@
 import math
 import uuid
 from datetime import date, timedelta
-from enum import StrEnum
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import ColumnElement, case, or_
+from sqlalchemy import ColumnElement, case
 from sqlalchemy.orm import aliased
 from sqlmodel import Session, col, func, select
 
@@ -23,6 +22,7 @@ from app.models import (
     StatusCounts,
     utcnow,
 )
+from app.patient_query import PatientListQuery, PatientSort, SortOrder, filter_clauses
 from app.text import shorten
 
 router = APIRouter(prefix="/patients", tags=["patients"])
@@ -32,19 +32,6 @@ NOT_FOUND = {status.HTTP_404_NOT_FOUND: {"model": ErrorMessage}}
 
 # Longest note excerpt sent with a patient.
 NOTE_PREVIEW_CHARS = 120
-
-
-class PatientSort(StrEnum):
-    NAME = "name"
-    AGE = "age"
-    LAST_VISIT = "last_visit"
-    LAST_NOTE = "last_note"
-    STATUS = "status"
-
-
-class SortOrder(StrEnum):
-    ASC = "asc"
-    DESC = "desc"
 
 
 def get_patient_or_404(patient_id: uuid.UUID, session: SessionDep) -> Patient:
@@ -89,18 +76,6 @@ def to_public(patient: Patient, last_note: Note | None) -> PatientPublic:
     return PatientPublic.model_validate(patient, update={"last_note": preview})
 
 
-def search_filter(q: str) -> ColumnElement[bool]:
-    """Case-insensitive substring match on the full name or the email."""
-    # Escape LIKE wildcards so a search for "%" or "_" is taken literally.
-    escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    pattern = f"%{escaped}%"
-    full_name = col(Patient.first_name) + " " + col(Patient.last_name)
-    return or_(
-        full_name.ilike(pattern, escape="\\"),
-        col(Patient.email).ilike(pattern, escape="\\"),
-    )
-
-
 def sort_columns(sort: PatientSort, order: SortOrder) -> list[ColumnElement]:
     descending = order is SortOrder.DESC
 
@@ -135,37 +110,26 @@ def sort_columns(sort: PatientSort, order: SortOrder) -> list[ColumnElement]:
 
 
 @router.get("")
-def list_patients(
-    session: SessionDep,
-    page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
-    q: Annotated[str | None, Query(max_length=100, description="Search name or email")] = None,
-    status: Annotated[PatientStatus | None, Query(description="Only this status")] = None,
-    sort: PatientSort = PatientSort.NAME,
-    order: SortOrder = SortOrder.ASC,
-) -> PatientsPage:
-    filters: list[ColumnElement[bool]] = []
-    if q and q.strip():
-        filters.append(search_filter(q.strip()))
-    if status is not None:
-        filters.append(col(Patient.status) == status)
+def list_patients(session: SessionDep, query: Annotated[PatientListQuery, Query()]) -> PatientsPage:
+    """One page of patients. Filters combine with AND; see PatientListQuery."""
+    filters = filter_clauses(query, date.today())
 
     total = session.exec(select(func.count()).select_from(Patient).where(*filters)).one()
     rows = session.exec(
         select(Patient, LatestNote)
         .outerjoin(LatestNote, col(LatestNote.patient_id) == col(Patient.id))
         .where(*filters)
-        .order_by(*sort_columns(sort, order))
-        .offset((page - 1) * page_size)
-        .limit(page_size)
+        .order_by(*sort_columns(query.sort, query.order))
+        .offset((query.page - 1) * query.page_size)
+        .limit(query.page_size)
     ).all()
 
     return PatientsPage(
         items=[to_public(patient, last_note) for patient, last_note in rows],
         total=total,
-        page=page,
-        page_size=page_size,
-        pages=math.ceil(total / page_size),
+        page=query.page,
+        page_size=query.page_size,
+        pages=math.ceil(total / query.page_size),
     )
 
 

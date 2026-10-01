@@ -28,7 +28,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Patients */
+        /**
+         * List Patients
+         * @description One page of patients. Filters combine with AND; see PatientListQuery.
+         */
         get: operations["list_patients"];
         put?: never;
         /** Create Patient */
@@ -498,12 +501,28 @@ export interface operations {
             query?: {
                 page?: number;
                 page_size?: number;
+                sort?: components["schemas"]["PatientSort"];
+                order?: components["schemas"]["SortOrder"];
                 /** @description Search name or email */
                 q?: string | null;
                 /** @description Only this status */
                 status?: components["schemas"]["PatientStatus"] | null;
-                sort?: components["schemas"]["PatientSort"];
-                order?: components["schemas"]["SortOrder"];
+                /** @description Any of these blood types (repeat the parameter) */
+                blood_type?: components["schemas"]["BloodType"][];
+                min_age?: number | null;
+                max_age?: number | null;
+                /** @description Last visit on or after this date */
+                last_visit_from?: string | null;
+                /** @description Last visit on or before this date */
+                last_visit_to?: string | null;
+                /** @description Has a condition containing */
+                condition?: string | null;
+                /** @description Takes a medication containing */
+                medication?: string | null;
+                /** @description Has an allergy containing */
+                allergy?: string | null;
+                /** @description City contains */
+                city?: string | null;
             };
             header?: never;
             path?: never;

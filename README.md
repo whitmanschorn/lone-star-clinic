@@ -93,7 +93,7 @@ Interactive docs are at http://localhost:8000/docs.
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/health` | `{"status": "ok"}` |
-| `GET` | `/patients` | Paginated list. Query: `page`, `page_size` (1-100), `q`, `status`, `sort`, `order` |
+| `GET` | `/patients` | Paginated list. Query: `page`, `page_size` (1-100), `sort`, `order`, `q`, `status`, plus the filters below |
 | `GET` | `/patients/stats` | Counts by status, for the dashboard |
 | `GET` | `/patients/{id}` | |
 | `POST` | `/patients` | `201` with a `Location` header |
@@ -107,6 +107,10 @@ Interactive docs are at http://localhost:8000/docs.
 - **List response:** `{ items, total, page, page_size, pages }`.
 - **Search** (`q`) is a case-insensitive substring match on full name and email. `%` and `_` are
   treated as plain text.
+- **Filters** combine with AND: `min_age` and `max_age`, `blood_type` (repeat it for several),
+  `last_visit_from` and `last_visit_to` (inclusive dates), and `condition`, `medication`,
+  `allergy` and `city`, which match part of an entry, ignoring case. A range given the wrong
+  way round is a `422`.
 - **Sort** is one of `name`, `age`, `last_visit`, `last_note`, `status` (by urgency), with
   `order` `asc` or `desc`. Patients with no visit or no note sort last either way. Ties fall
   back to name (A to Z) and then id, so paging never repeats or skips a row.
@@ -185,6 +189,14 @@ same signature. Dates in the narrative use the clinic's time zone (`CLINIC_TIMEZ
   debounced, and SWR keeps the previous rows on screen (dimmed) until the new ones arrive.
 - **Responsive:** below 768px the sidebar becomes a drawer and the table becomes a list of
   cards with a sort picker.
+- **Advanced filters:** the Filters button opens a panel for age range, blood type, last-visit
+  dates, condition, medication, allergy and city. Applied filters show as chips that can be
+  removed one at a time.
+- **Bookmarkable views:** the list's search, status, filters, sort, page and page size are
+  mirrored into the URL (`/patients?status=critical&sort=age&order=desc&min_age=70`), so a
+  view can be bookmarked, shared or reloaded. A hand-edited address is validated; anything
+  invalid is dropped. The address is replaced, not pushed, so Back leaves the list rather than
+  replaying each change (`frontend/src/lib/usePatientListUrlSync.ts`).
 - **Dark and light mode:** follows the operating system until the user picks one with the
   toggle in the header (in the drawer on phones); the choice is remembered. A small inline
   script in `index.html` applies it before the app loads, so there is no flash of the wrong
@@ -205,9 +217,9 @@ same signature. Dates in the narrative use the clinic's time zone (`CLINIC_TIMEZ
   they name, a `409` conflict or `5xx` is explained next to the form's buttons, and so is a
   network failure. The form keeps what was typed in every case, so retrying is pressing the button
   again. Failed page loads show a "Try again" button.
-- **State:** Redux holds client-side UI state only: the list's search, filter, sort and page
+- **State:** Redux holds client-side UI state only: the list's search, filters, sort and page
   (so they survive a visit to a patient, and the sidebar's status shortcuts can drive the
-  list), and which modal is open. Everything fetched from the API is cached by SWR.
+  list), and which modal is open. The URL mirrors the list state rather than owning it. Everything fetched from the API is cached by SWR.
 
 ## Database
 

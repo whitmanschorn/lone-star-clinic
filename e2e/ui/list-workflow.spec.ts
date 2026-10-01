@@ -51,7 +51,8 @@ test.describe('creating a patient from the list', () => {
     await dialog.getByRole('button', { name: 'Create patient' }).click()
 
     await expect(dialog).toBeHidden()
-    await expect(page).toHaveURL('/patients')
+    // Still on the list, with the search in the address.
+    await expect(page).toHaveURL(/\/patients\?q=Testcase-/)
     // The search is still applied, and now matches the new patient.
     await expect(page.getByRole('textbox', { name: 'Search patients' })).toHaveValue(lastName)
     const row = patientRows(page).filter({ hasText: `Calamity ${lastName}` })
@@ -138,7 +139,8 @@ test.describe('working on an existing patient from the list', () => {
     await dialog.getByRole('button', { name: 'Save changes' }).click()
 
     await expect(dialog).toBeHidden()
-    await expect(page).toHaveURL('/patients')
+    // Still on the list, with the search in the address.
+    await expect(page).toHaveURL(/\/patients\?q=Testcase-/)
     const row = patientRows(page).first()
     await expect(row.getByRole('link')).toHaveText(`Rowena ${patient.last_name}`)
     await expect(row.getByRole('cell').nth(3)).toHaveText('Critical')
@@ -218,7 +220,8 @@ test.describe('working on an existing patient from the list', () => {
     await dialog.getByRole('button', { name: 'Add note' }).click()
 
     await expect(dialog).toBeHidden()
-    await expect(page).toHaveURL('/patients')
+    // Still on the list, with the search in the address.
+    await expect(page).toHaveURL(/\/patients\?q=Testcase-/)
     await expect(row.getByRole('cell').nth(4)).toContainText('Kicked by a mule. Shin bruised.')
     // Today's date, e.g. "Oct 1, 2026".
     await expect(row.getByRole('cell').nth(4)).toContainText(/[A-Z][a-z]{2} \d{1,2}, \d{4}/)
@@ -234,7 +237,8 @@ test.describe('working on an existing patient from the list', () => {
 
   test('row actions do not open the patient page, but the row still does', async ({ page }) => {
     await page.getByRole('button', { name: `Edit Rowdy ${patient.last_name}` }).click()
-    await expect(page).toHaveURL('/patients')
+    // Still on the list, with the search in the address.
+    await expect(page).toHaveURL(/\/patients\?q=Testcase-/)
     await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
     await expect(page.getByRole('dialog')).toBeHidden()
 
