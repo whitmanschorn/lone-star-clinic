@@ -59,7 +59,11 @@ Interactive docs are at `http://localhost:8000/docs`.
 | `GET` | `/patients/{id}` | |
 | `POST` | `/patients` | `201` with a `Location` header |
 | `PUT` | `/patients/{id}` | Replaces the whole record |
-| `DELETE` | `/patients/{id}` | `204` |
+| `DELETE` | `/patients/{id}` | `204`; also deletes the patient's notes |
+| `GET` | `/patients/{id}/notes` | All notes, newest first |
+| `POST` | `/patients/{id}/notes` | Body: `content`, optional `timestamp` (defaults to now), optional `changes` (see below). `201` |
+| `DELETE` | `/patients/{id}/notes/{note_id}` | `204` |
+| `GET` | `/patients/{id}/summary` | Generated summary of the profile and notes |
 
 - **List response:** `{ items, total, page, page_size, pages }`.
 - **Search** (`q`) is a case-insensitive substring match on full name and email. `%` and `_` are
@@ -69,13 +73,49 @@ Interactive docs are at `http://localhost:8000/docs`.
 - **Errors:** `404` with `{"detail": "Patient not found"}` for unknown ids, and `422` with
   FastAPI's per-field error list for invalid input (including ids that are not UUIDs).
 
+### Updating the chart with a note
+
+A note can carry `changes` to the patient's conditions, medications and allergies, so the
+record is updated in the same step as the note that explains why:
+
+```json
+{
+  "content": "BP still high. Doubling the dose and adding a statin.",
+  "changes": [
+    { "field": "medications", "action": "update",
+      "value": "Lisinopril 10 mg daily", "new_value": "Lisinopril 20 mg daily" },
+    { "field": "medications", "action": "add", "value": "Atorvastatin 20 mg nightly" }
+  ]
+}
+```
+
+- `field` is `conditions`, `medications` or `allergies`; `action` is `add`, `update` or `remove`.
+- Changes are applied in order and saved with the note in one transaction: all or nothing.
+- Existing entries are matched case-insensitively. A change that does not fit the chart as it
+  stands (adding a duplicate, updating or removing something that is not there) returns `409`
+  with a message, and nothing is saved.
+- Each note keeps the changes it made, and the summary narrative mentions them. Deleting a note
+  later does not undo them.
+
+### Patient summary
+
+`GET /patients/{id}/summary` returns the identifiers (name, age, blood type), the clinical
+information (conditions, allergies), a `narrative` built from the notes, and `summary`, the
+whole thing as plain text. Medications are included alongside conditions and allergies.
+
+The generator is a template (`backend/app/summary.py`), not an LLM: it is deterministic, needs
+no API key, and can be tested exactly. The narrative walks the notes in date order, quoting the
+first, the latest and up to three in between, and counts the rest so a long history stays
+readable. It is a single pure function, so an LLM-backed version can be swapped in behind the
+same signature. Dates in the narrative use the clinic's time zone (`CLINIC_TIMEZONE`).
+
 ## Frontend
 
 | Route | Page |
 |---|---|
 | `/` | Dashboard: counts, critical patients, recent visits |
 | `/patients` | Patient list: search, status filter, sorting, pagination |
-| `/patients/:id` | Patient record |
+| `/patients/:id` | Patient record, in three tabs: Overview, Notes (add, with optional chart updates, and delete), Summary |
 | anything else | 404 page |
 
 - **Large lists:** searching, filtering, sorting and paging all happen in the database, so the
@@ -95,6 +135,7 @@ Interactive docs are at `http://localhost:8000/docs`.
 - **Seed data:** `backend/app/seed_data.py` holds 24 hand-written patients and
   `backend/app/seed.py` adds 100 more with a plain loop (no randomness), so the list has enough
   rows to page through. Seeding only runs when the `patients` table is empty.
+  Nine of the hand-written patients also come with clinical notes.
 - **Start over:** `docker compose down -v` deletes the database volume.
 
 ## Tests and checks

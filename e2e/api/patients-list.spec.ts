@@ -31,6 +31,7 @@ test.describe('GET /patients', () => {
       status: 'active',
       blood_type: 'O+',
       conditions: ['Hypertension', 'Type 2 diabetes'],
+      medications: ['Lisinopril 10 mg daily', 'Metformin 500 mg twice daily'],
       allergies: ['Penicillin'],
     })
     expect(page.items[0]?.age).toBeGreaterThanOrEqual(68)

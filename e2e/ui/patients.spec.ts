@@ -206,6 +206,8 @@ test.describe('patient detail', () => {
     await expect(medical.getByText('O+')).toBeVisible()
     await expect(medical.getByText('Hypertension')).toBeVisible()
     await expect(medical.getByText('Type 2 diabetes')).toBeVisible()
+    await expect(medical.getByText('Lisinopril 10 mg daily')).toBeVisible()
+    await expect(medical.getByText('Metformin 500 mg twice daily')).toBeVisible()
     await expect(medical.getByText('Penicillin')).toBeVisible()
   })
 
@@ -220,6 +222,7 @@ test.describe('patient detail', () => {
       blood_type: null,
       allergies: [],
       conditions: [],
+      medications: [],
       last_visit: null,
     })
     try {
@@ -229,7 +232,8 @@ test.describe('patient detail', () => {
       const medical = page.getByRole('region', { name: 'Medical' })
       await expect(medical.getByText('Unknown')).toBeVisible()
       await expect(medical.getByText('Never')).toBeVisible()
-      await expect(medical.getByText('None recorded')).toBeVisible()
+      // Conditions and medications are both empty.
+      await expect(medical.getByText('None recorded')).toHaveCount(2)
       await expect(medical.getByText('No known allergies')).toBeVisible()
     } finally {
       await deletePatient(request, patient.id)

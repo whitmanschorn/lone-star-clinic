@@ -4,507 +4,859 @@
  */
 
 export interface paths {
-  '/health': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Health */
-    get: operations['health']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/patients': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** List Patients */
-    get: operations['list_patients']
-    put?: never
-    /** Create Patient */
-    post: operations['create_patient']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/patients/stats': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Patient Stats */
-    get: operations['patient_stats']
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  '/patients/{patient_id}': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /** Get Patient */
-    get: operations['get_patient']
-    /**
-     * Update Patient
-     * @description Replace the whole record: fields left out of the body go back to their defaults.
-     */
-    put: operations['update_patient']
-    post?: never
-    /** Delete Patient */
-    delete: operations['delete_patient']
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health */
+        get: operations["health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Patients */
+        get: operations["list_patients"];
+        put?: never;
+        /** Create Patient */
+        post: operations["create_patient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patients/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Patient Stats */
+        get: operations["patient_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patients/{patient_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Patient */
+        get: operations["get_patient"];
+        /**
+         * Update Patient
+         * @description Replace the whole record: fields left out of the body go back to their defaults.
+         */
+        put: operations["update_patient"];
+        post?: never;
+        /** Delete Patient */
+        delete: operations["delete_patient"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patients/{patient_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Notes
+         * @description All of a patient's notes, newest first.
+         */
+        get: operations["list_notes"];
+        put?: never;
+        /**
+         * Create Note
+         * @description Add a note and, optionally, update the patient's chart in the same step.
+         *
+         *     The note and its chart changes are saved together or not at all. A change
+         *     that does not fit the current chart (adding an entry that is already there,
+         *     updating or removing one that is not) is refused with 409.
+         */
+        post: operations["create_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patients/{patient_id}/notes/{note_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Note */
+        delete: operations["delete_note"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patients/{patient_id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Patient Summary */
+        get: operations["patient_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
-export type webhooks = Record<string, never>
+export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    /**
-     * BloodType
-     * @enum {string}
-     */
-    BloodType: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-'
-    /**
-     * ErrorMessage
-     * @description Body of 4xx/5xx responses raised by the API (FastAPI's HTTPException shape).
-     */
-    ErrorMessage: {
-      /** Detail */
-      detail: string
-    }
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components['schemas']['ValidationError'][]
-    }
-    /** Health */
-    Health: {
-      /**
-       * Status
-       * @default ok
-       * @constant
-       */
-      status?: 'ok'
-    }
-    /**
-     * PatientCreate
-     * @description Request body for both POST and PUT: PUT replaces the whole record.
-     */
-    PatientCreate: {
-      /** First Name */
-      first_name: string
-      /** Last Name */
-      last_name: string
-      /**
-       * Date Of Birth
-       * Format: date
-       */
-      date_of_birth: string
-      /** Email */
-      email?: string | null
-      /** Phone */
-      phone?: string | null
-      /** Address Line */
-      address_line?: string | null
-      /** City */
-      city?: string | null
-      /** State */
-      state?: string | null
-      /** Postal Code */
-      postal_code?: string | null
-      blood_type?: components['schemas']['BloodType'] | null
-      /** @default active */
-      status?: components['schemas']['PatientStatus']
-      /** Allergies */
-      allergies?: string[]
-      /** Conditions */
-      conditions?: string[]
-      /** Last Visit */
-      last_visit?: string | null
-    }
-    /** PatientPublic */
-    PatientPublic: {
-      /** First Name */
-      first_name: string
-      /** Last Name */
-      last_name: string
-      /**
-       * Date Of Birth
-       * Format: date
-       */
-      date_of_birth: string
-      /** Email */
-      email: string | null
-      /** Phone */
-      phone: string | null
-      /** Address Line */
-      address_line: string | null
-      /** City */
-      city: string | null
-      /** State */
-      state: string | null
-      /** Postal Code */
-      postal_code: string | null
-      blood_type: components['schemas']['BloodType'] | null
-      /** @default active */
-      status: components['schemas']['PatientStatus']
-      /** Allergies */
-      allergies: string[]
-      /** Conditions */
-      conditions: string[]
-      /** Last Visit */
-      last_visit: string | null
-      /**
-       * Id
-       * Format: uuid
-       */
-      id: string
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string
-      /** Age */
-      readonly age: number
-    }
-    /**
-     * PatientSort
-     * @enum {string}
-     */
-    PatientSort: 'name' | 'age' | 'last_visit' | 'status'
-    /** PatientStats */
-    PatientStats: {
-      /** Total */
-      total: number
-      by_status: components['schemas']['StatusCounts']
-      /** Seen Last 30 Days */
-      seen_last_30_days: number
-    }
-    /**
-     * PatientStatus
-     * @enum {string}
-     */
-    PatientStatus: 'active' | 'inactive' | 'critical'
-    /**
-     * PatientsPage
-     * @description One page of the patient list, plus what the client needs to page through it.
-     */
-    PatientsPage: {
-      /** Items */
-      items: components['schemas']['PatientPublic'][]
-      /** Total */
-      total: number
-      /** Page */
-      page: number
-      /** Page Size */
-      page_size: number
-      /** Pages */
-      pages: number
-    }
-    /**
-     * SortOrder
-     * @enum {string}
-     */
-    SortOrder: 'asc' | 'desc'
-    /** StatusCounts */
-    StatusCounts: {
-      /**
-       * Active
-       * @default 0
-       */
-      active: number
-      /**
-       * Inactive
-       * @default 0
-       */
-      inactive: number
-      /**
-       * Critical
-       * @default 0
-       */
-      critical: number
-    }
-    /** ValidationError */
-    ValidationError: {
-      /** Location */
-      loc: (string | number)[]
-      /** Message */
-      msg: string
-      /** Error Type */
-      type: string
-      /** Input */
-      input?: unknown
-      /** Context */
-      ctx?: Record<string, never>
-    }
-  }
-  responses: never
-  parameters: never
-  requestBodies: never
-  headers: never
-  pathItems: never
+    schemas: {
+        /**
+         * BloodType
+         * @enum {string}
+         */
+        BloodType: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+        /**
+         * ChartAction
+         * @enum {string}
+         */
+        ChartAction: "add" | "update" | "remove";
+        /**
+         * ChartChange
+         * @description One change to a patient's chart, made together with a note.
+         *
+         *     `value` is the entry being added or removed, or the existing entry being
+         *     updated; `new_value` is what an updated entry becomes.
+         */
+        ChartChange: {
+            field: components["schemas"]["ChartField"];
+            action: components["schemas"]["ChartAction"];
+            /** Value */
+            value: string;
+            /** New Value */
+            new_value?: string | null;
+        };
+        /**
+         * ChartField
+         * @description The lists on a patient's chart that a note can change.
+         * @enum {string}
+         */
+        ChartField: "conditions" | "medications" | "allergies";
+        /**
+         * ErrorMessage
+         * @description Body of 4xx/5xx responses raised by the API (FastAPI's HTTPException shape).
+         */
+        ErrorMessage: {
+            /** Detail */
+            detail: string;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** Health */
+        Health: {
+            /**
+             * Status
+             * @default ok
+             * @constant
+             */
+            status?: "ok";
+        };
+        /** NoteCreate */
+        NoteCreate: {
+            /** Content */
+            content: string;
+            /**
+             * Timestamp
+             * @description When the note was written (ISO 8601). Defaults to now. A value without a UTC offset is taken to be UTC.
+             */
+            timestamp?: string | null;
+            /**
+             * Changes
+             * @description Chart changes to make together with the note: add, update or remove a condition, medication or allergy. Applied in order, all or nothing.
+             */
+            changes?: components["schemas"]["ChartChange"][];
+        };
+        /** NotePublic */
+        NotePublic: {
+            /** Content */
+            content: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Patient Id
+             * Format: uuid
+             */
+            patient_id: string;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Changes */
+            changes: components["schemas"]["ChartChange"][];
+        };
+        /**
+         * PatientCreate
+         * @description Request body for both POST and PUT: PUT replaces the whole record.
+         */
+        PatientCreate: {
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /**
+             * Date Of Birth
+             * Format: date
+             */
+            date_of_birth: string;
+            /** Email */
+            email?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Address Line */
+            address_line?: string | null;
+            /** City */
+            city?: string | null;
+            /** State */
+            state?: string | null;
+            /** Postal Code */
+            postal_code?: string | null;
+            blood_type?: components["schemas"]["BloodType"] | null;
+            /** @default active */
+            status?: components["schemas"]["PatientStatus"];
+            /** Allergies */
+            allergies?: string[];
+            /** Conditions */
+            conditions?: string[];
+            /** Medications */
+            medications?: string[];
+            /** Last Visit */
+            last_visit?: string | null;
+        };
+        /** PatientPublic */
+        PatientPublic: {
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /**
+             * Date Of Birth
+             * Format: date
+             */
+            date_of_birth: string;
+            /** Email */
+            email: string | null;
+            /** Phone */
+            phone: string | null;
+            /** Address Line */
+            address_line: string | null;
+            /** City */
+            city: string | null;
+            /** State */
+            state: string | null;
+            /** Postal Code */
+            postal_code: string | null;
+            blood_type: components["schemas"]["BloodType"] | null;
+            /** @default active */
+            status: components["schemas"]["PatientStatus"];
+            /** Allergies */
+            allergies: string[];
+            /** Conditions */
+            conditions: string[];
+            /** Medications */
+            medications: string[];
+            /** Last Visit */
+            last_visit: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Age */
+            readonly age: number;
+        };
+        /**
+         * PatientSort
+         * @enum {string}
+         */
+        PatientSort: "name" | "age" | "last_visit" | "status";
+        /** PatientStats */
+        PatientStats: {
+            /** Total */
+            total: number;
+            by_status: components["schemas"]["StatusCounts"];
+            /** Seen Last 30 Days */
+            seen_last_30_days: number;
+        };
+        /**
+         * PatientStatus
+         * @enum {string}
+         */
+        PatientStatus: "active" | "inactive" | "critical";
+        /**
+         * PatientSummary
+         * @description A readable synthesis of a patient's profile and notes.
+         */
+        PatientSummary: {
+            /**
+             * Patient Id
+             * Format: uuid
+             */
+            patient_id: string;
+            /** Name */
+            name: string;
+            /** Age */
+            age: number;
+            blood_type: components["schemas"]["BloodType"] | null;
+            status: components["schemas"]["PatientStatus"];
+            /** Conditions */
+            conditions: string[];
+            /** Medications */
+            medications: string[];
+            /** Allergies */
+            allergies: string[];
+            /** Note Count */
+            note_count: number;
+            /**
+             * Narrative
+             * @description The story told by the notes, oldest to newest.
+             */
+            narrative: string;
+            /**
+             * Summary
+             * @description The whole summary as plain text, ready to display.
+             */
+            summary: string;
+            /**
+             * Generator
+             * @default template
+             * @constant
+             */
+            generator: "template";
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
+        /**
+         * PatientsPage
+         * @description One page of the patient list, plus what the client needs to page through it.
+         */
+        PatientsPage: {
+            /** Items */
+            items: components["schemas"]["PatientPublic"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Pages */
+            pages: number;
+        };
+        /**
+         * SortOrder
+         * @enum {string}
+         */
+        SortOrder: "asc" | "desc";
+        /** StatusCounts */
+        StatusCounts: {
+            /**
+             * Active
+             * @default 0
+             */
+            active: number;
+            /**
+             * Inactive
+             * @default 0
+             */
+            inactive: number;
+            /**
+             * Critical
+             * @default 0
+             */
+            critical: number;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
+        };
+    };
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
-export type $defs = Record<string, never>
+export type $defs = Record<string, never>;
 export interface operations {
-  health: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Health']
-        }
-      }
-    }
-  }
-  list_patients: {
-    parameters: {
-      query?: {
-        page?: number
-        page_size?: number
-        /** @description Search name or email */
-        q?: string | null
-        /** @description Only this status */
-        status?: components['schemas']['PatientStatus'] | null
-        sort?: components['schemas']['PatientSort']
-        order?: components['schemas']['SortOrder']
-      }
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PatientsPage']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  create_patient: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PatientCreate']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PatientPublic']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  patient_stats: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PatientStats']
-        }
-      }
-    }
-  }
-  get_patient: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        patient_id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PatientPublic']
-        }
-      }
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorMessage']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  update_patient: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        patient_id: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PatientCreate']
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['PatientPublic']
-        }
-      }
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorMessage']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
-  delete_patient: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        patient_id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['ErrorMessage']
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['HTTPValidationError']
-        }
-      }
-    }
-  }
+    health: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    list_patients: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                /** @description Search name or email */
+                q?: string | null;
+                /** @description Only this status */
+                status?: components["schemas"]["PatientStatus"] | null;
+                sort?: components["schemas"]["PatientSort"];
+                order?: components["schemas"]["SortOrder"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientsPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_patient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatientCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patient_stats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientStats"];
+                };
+            };
+        };
+    };
+    get_patient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patient_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientPublic"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_patient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patient_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatientCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientPublic"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_patient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patient_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_notes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patient_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotePublic"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_note: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patient_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotePublic"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_note: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+                patient_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patient_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patient_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientSummary"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
 }

@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 
 from app.config import get_settings
-from app.routers import health, patients
+from app.routers import health, notes, patients
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +43,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(Exception, unhandled_error)
     app.include_router(health.router)
     app.include_router(patients.router)
+    app.include_router(notes.router)
     return app
 
 

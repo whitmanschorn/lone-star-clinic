@@ -25,6 +25,7 @@ export function patientBody(overrides: Partial<PatientCreate> = {}): PatientCrea
     status: 'active',
     allergies: ['Penicillin'],
     conditions: ['Hypertension'],
+    medications: ['Lisinopril 10 mg daily'],
     last_visit: '2026-01-15',
     ...overrides,
   }

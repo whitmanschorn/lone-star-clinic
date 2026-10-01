@@ -1,4 +1,5 @@
 import { ApiError } from '../api/client'
+import type { ValidationIssue } from '../api/types'
 
 /** A sentence a person can act on, for any error thrown by the API layer. */
 export function describeError(error: unknown): string {
@@ -19,4 +20,31 @@ export function describeError(error: unknown): string {
 export function isNotFound(error: unknown): boolean {
   // 422 covers ids that are not UUIDs, which cannot belong to any record.
   return error instanceof ApiError && (error.status === 404 || error.status === 422)
+}
+
+/**
+ * Field-by-field messages from a 422 response, keyed by field name, ready for
+ * `form.setErrors`. Returns null if the error is not a validation failure.
+ */
+export function fieldErrors(error: unknown): Record<string, string> | null {
+  if (!(error instanceof ApiError) || error.status !== 422) return null
+  const issues = (error.detail as { detail?: unknown } | undefined)?.detail
+  if (!Array.isArray(issues)) return null
+
+  const errors: Record<string, string> = {}
+  for (const issue of issues as ValidationIssue[]) {
+    // loc is e.g. ["body", "email"] or ["body", "changes", 0, "value"]. Joined
+    // with dots it is the same path @mantine/form uses: "changes.0.value".
+    const path = (issue.loc[0] === 'body' ? issue.loc.slice(1) : issue.loc).join('.')
+    if (path && !(path in errors)) {
+      errors[path] = tidyMessage(issue.msg)
+    }
+  }
+  return errors
+}
+
+/** Pydantic prefixes custom messages with "Value error, "; people do not need that. */
+function tidyMessage(message: string): string {
+  const text = message.replace(/^Value error, /, '')
+  return text.charAt(0).toUpperCase() + text.slice(1)
 }

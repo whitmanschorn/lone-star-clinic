@@ -17,3 +17,5 @@ select = [
 [tool.ruff.lint.per-file-ignores]
 # Generated migrations import sqlmodel types even when a revision does not use them.
 "migrations/versions/*.py" = ["F401"]
+# Clinical notes are prose; wrapping them mid-sentence makes them harder to read.
+"app/seed_data.py" = ["E501"]

@@ -15,5 +15,15 @@ export type BloodType = Schemas['BloodType']
 export type PatientSort = Schemas['PatientSort']
 export type SortOrder = Schemas['SortOrder']
 
+export type Note = Schemas['NotePublic']
+export type NoteCreate = Schemas['NoteCreate']
+export type PatientSummary = Schemas['PatientSummary']
+export type ChartChange = Schemas['ChartChange']
+export type ChartField = Schemas['ChartField']
+export type ChartAction = Schemas['ChartAction']
+
+/** One entry in the `detail` list of a 422 response. */
+export type ValidationIssue = Schemas['ValidationError']
+
 /** Query string accepted by GET /patients. */
 export type PatientListParams = NonNullable<operations['list_patients']['parameters']['query']>

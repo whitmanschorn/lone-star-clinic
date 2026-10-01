@@ -41,6 +41,7 @@ test.describe('POST /patients', () => {
         status: 'active',
         allergies: [],
         conditions: [],
+        medications: [],
         email: null,
         blood_type: null,
         last_visit: null,
@@ -89,6 +90,8 @@ test.describe('POST /patients', () => {
     ['an unknown status', { status: 'asleep' }, 'status'],
     ['a last visit in the future', { last_visit: '2999-01-01' }, 'last_visit'],
     ['allergies that are not a list', { allergies: 'Penicillin' }, 'allergies'],
+    ['medications that are not a list', { medications: 'Aspirin' }, 'medications'],
+    ['a medication name that is too long', { medications: ['x'.repeat(101)] }, 'medications'],
   ]
   for (const [description, overrides, field] of invalidBodies) {
     test(`rejects ${description} with 422`, async ({ request }) => {
@@ -163,6 +166,7 @@ test.describe('PUT /patients/{id}', () => {
       expect((await response.json()) as Patient).toMatchObject({
         allergies: [],
         conditions: [],
+        medications: [],
         phone: null,
         blood_type: null,
       })

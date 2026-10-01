@@ -5,13 +5,15 @@ randomness, so every fresh database gets exactly the same patients.
 """
 
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlmodel import Session, func, select
 
 from app import seed_data
-from app.models import Patient, PatientCreate
+from app.config import get_settings
+from app.models import Note, Patient, PatientCreate
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +45,10 @@ def generated_patient(i: int) -> dict[str, Any]:
         "postal_code": postal_code,
         "blood_type": seed_data.BLOOD_TYPES[i % len(seed_data.BLOOD_TYPES)],
         "status": status,
-        # Roughly two in three have a condition; one in four has an allergy.
+        # Roughly two in three have a condition, with the medication that goes
+        # with it; one in four has an allergy.
         "conditions": [] if i % 3 == 0 else [seed_data.CONDITIONS[i % len(seed_data.CONDITIONS)]],
+        "medications": [] if i % 3 == 0 else [seed_data.MEDICATIONS[i % len(seed_data.CONDITIONS)]],
         "allergies": [seed_data.ALLERGIES[i % len(seed_data.ALLERGIES)]] if i % 4 == 0 else [],
         "last_visit_days_ago": 5 + (i * 11) % 500,
     }
@@ -53,6 +57,7 @@ def generated_patient(i: int) -> dict[str, Any]:
 def build_patient(data: dict[str, Any], today: date) -> Patient:
     """Turn one seed entry into a Patient, filling in the derived fields."""
     fields = dict(data)
+    fields.pop("notes", None)
     days_ago = fields.pop("last_visit_days_ago", None)
     fields.setdefault("state", "TX")
     fields.setdefault("email", f"{fields['first_name']}.{fields['last_name']}@example.com".lower())
@@ -62,15 +67,39 @@ def build_patient(data: dict[str, Any], today: date) -> Patient:
     return Patient.model_validate(PatientCreate(**fields))
 
 
+def build_notes(data: dict[str, Any], patient: Patient, today: date) -> list[Note]:
+    """Turn one seed entry's (days_ago, text) pairs into Notes for that patient."""
+    clinic_time = ZoneInfo(get_settings().clinic_timezone)
+    return [
+        Note(
+            patient_id=patient.id,
+            content=content,
+            # Mid-morning, clinic time, on the day of the visit.
+            timestamp=datetime.combine(today - timedelta(days=days_ago), time(10, 30), clinic_time),
+        )
+        for days_ago, content in data.get("notes", [])
+    ]
+
+
 def seed(session: Session) -> int:
-    """Insert the sample patients if the table is empty. Returns rows added."""
+    """Insert the sample patients and notes if there are no patients. Returns patients added."""
     if session.exec(select(func.count()).select_from(Patient)).one() > 0:
         logger.info("Patients already present, skipping seed")
         return 0
 
     today = date.today()
     entries = seed_data.PATIENTS + [generated_patient(i) for i in range(GENERATED_PATIENT_COUNT)]
-    session.add_all(build_patient(entry, today) for entry in entries)
+    patients = [build_patient(entry, today) for entry in entries]
+    session.add_all(patients)
+    # Patients must exist before the notes that point at them.
+    session.flush()
+
+    notes = [
+        note
+        for entry, patient in zip(entries, patients, strict=True)
+        for note in build_notes(entry, patient, today)
+    ]
+    session.add_all(notes)
     session.commit()
-    logger.info("Seeded %d patients", len(entries))
-    return len(entries)
+    logger.info("Seeded %d patients and %d notes", len(patients), len(notes))
+    return len(patients)

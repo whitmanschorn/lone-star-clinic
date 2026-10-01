@@ -1,10 +1,17 @@
 import uuid
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import EmailStr, StringConstraints, computed_field, field_validator
-from sqlalchemy import ARRAY, Column, DateTime, Index, String
+from pydantic import (
+    EmailStr,
+    StringConstraints,
+    computed_field,
+    field_validator,
+    model_validator,
+)
+from sqlalchemy import ARRAY, Column, DateTime, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 
@@ -87,6 +94,11 @@ class PatientBase(SQLModel):
         max_length=50,
         sa_column=Column(ARRAY(String), nullable=False, server_default="{}"),
     )
+    medications: list[str] = Field(
+        default_factory=list,
+        max_length=50,
+        sa_column=Column(ARRAY(String), nullable=False, server_default="{}"),
+    )
     last_visit: date | None = None
 
     @field_validator("first_name", "last_name")
@@ -114,7 +126,7 @@ class PatientBase(SQLModel):
             raise ValueError("last visit cannot be in the future")
         return value
 
-    @field_validator("allergies", "conditions")
+    @field_validator("allergies", "conditions", "medications")
     @classmethod
     def clean_list(cls, values: list[str]) -> list[str]:
         cleaned = _clean_list(values)
@@ -177,6 +189,140 @@ class PatientStats(SQLModel):
     total: int
     by_status: StatusCounts
     seen_last_30_days: int
+
+
+class ChartField(StrEnum):
+    """The lists on a patient's chart that a note can change."""
+
+    CONDITIONS = "conditions"
+    MEDICATIONS = "medications"
+    ALLERGIES = "allergies"
+
+
+class ChartAction(StrEnum):
+    ADD = "add"
+    UPDATE = "update"
+    REMOVE = "remove"
+
+
+ChartEntry = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+
+
+class ChartChange(SQLModel):
+    """One change to a patient's chart, made together with a note.
+
+    `value` is the entry being added or removed, or the existing entry being
+    updated; `new_value` is what an updated entry becomes.
+    """
+
+    field: ChartField
+    action: ChartAction
+    value: ChartEntry
+    new_value: ChartEntry | None = None
+
+    @model_validator(mode="after")
+    def new_value_fits_action(self) -> Self:
+        if self.action is ChartAction.UPDATE:
+            if self.new_value is None:
+                raise ValueError("new_value is required when action is 'update'")
+            if self.new_value == self.value:
+                raise ValueError("new_value must differ from value")
+        elif self.new_value is not None:
+            raise ValueError("new_value is only allowed when action is 'update'")
+        return self
+
+
+# Tolerance for a client clock that runs slightly ahead of the server's.
+NOTE_CLOCK_SKEW = timedelta(minutes=5)
+
+
+class NoteBase(SQLModel):
+    content: str = Field(min_length=1, max_length=5000, sa_type=Text)
+
+    @field_validator("content")
+    @classmethod
+    def content_not_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("must not be blank")
+        return value
+
+
+class Note(NoteBase, table=True):
+    __tablename__ = "notes"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    # Notes belong to one patient and are deleted with them (ON DELETE CASCADE).
+    patient_id: uuid.UUID = Field(foreign_key="patients.id", ondelete="CASCADE", index=True)
+    # When the note was written, as reported by the client.
+    timestamp: datetime = Field(sa_type=DateTime(timezone=True))
+    # When the server stored it.
+    created_at: datetime = Field(default_factory=utcnow, sa_type=DateTime(timezone=True))
+    # The chart changes made with this note (ChartChange dicts), kept as a
+    # record of what the note changed.
+    changes: list[dict[str, Any]] = Field(
+        default_factory=list,
+        sa_column=Column(JSONB, nullable=False, server_default="[]"),
+    )
+
+
+class NoteCreate(NoteBase):
+    timestamp: datetime | None = Field(
+        default=None,
+        description=(
+            "When the note was written (ISO 8601). Defaults to now. "
+            "A value without a UTC offset is taken to be UTC."
+        ),
+    )
+    changes: list[ChartChange] = Field(
+        default_factory=list,
+        max_length=20,
+        description=(
+            "Chart changes to make together with the note: add, update or remove "
+            "a condition, medication or allergy. Applied in order, all or nothing."
+        ),
+    )
+
+    @field_validator("timestamp")
+    @classmethod
+    def timestamp_is_aware_and_not_future(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=UTC)
+        if value > utcnow() + NOTE_CLOCK_SKEW:
+            raise ValueError("timestamp cannot be in the future")
+        return value
+
+
+class NotePublic(NoteBase):
+    model_config = RESPONSE_MODEL  # type: ignore[assignment]
+
+    id: uuid.UUID
+    patient_id: uuid.UUID
+    timestamp: datetime
+    created_at: datetime
+    changes: list[ChartChange]
+
+
+class PatientSummary(SQLModel):
+    """A readable synthesis of a patient's profile and notes."""
+
+    model_config = RESPONSE_MODEL  # type: ignore[assignment]
+
+    patient_id: uuid.UUID
+    name: str
+    age: int
+    blood_type: BloodType | None
+    status: PatientStatus
+    conditions: list[str]
+    medications: list[str]
+    allergies: list[str]
+    note_count: int
+    narrative: str = Field(description="The story told by the notes, oldest to newest.")
+    summary: str = Field(description="The whole summary as plain text, ready to display.")
+    generator: Literal["template"] = "template"
+    generated_at: datetime
 
 
 class ErrorMessage(SQLModel):

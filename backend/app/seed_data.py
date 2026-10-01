@@ -2,7 +2,8 @@
 
 Everything here is fictional. Emails use example.com and phone numbers use the
 555-01xx range reserved for fiction. `last_visit_days_ago` is relative to the
-day the database is seeded, so the data never looks stale.
+day the database is seeded, so the data never looks stale. Clinical notes are
+`(days_ago, text)` pairs, relative in the same way.
 """
 
 from typing import Any
@@ -20,8 +21,23 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "O+",
         "status": "active",
         "conditions": ["Hypertension", "Type 2 diabetes"],
+        "medications": ["Lisinopril 10 mg daily", "Metformin 500 mg twice daily"],
         "allergies": ["Penicillin"],
         "last_visit_days_ago": 6,
+        "notes": [
+            (
+                190,
+                "Annual physical. BP 148/92. Talked about cutting back on brisket and salt. Started lisinopril 10 mg daily.",
+            ),
+            (
+                95,
+                "BP 138/86 on lisinopril. A1c 7.4%. Reinforced diet changes and referred to diabetes education.",
+            ),
+            (
+                6,
+                "A1c down to 6.9% and BP 132/82. Reports walking the fence line every morning. Continue current plan; recheck in three months.",
+            ),
+        ],
     },
     {
         "first_name": "Lefty",
@@ -34,8 +50,19 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "A+",
         "status": "active",
         "conditions": ["Rotator cuff tendinopathy (left shoulder)"],
+        "medications": ["Naproxen 500 mg as needed"],
         "allergies": [],
         "last_visit_days_ago": 19,
+        "notes": [
+            (
+                60,
+                "Left shoulder pain after a week of roping practice. Painful arc on abduction. Rotator cuff tendinopathy suspected; started physical therapy and naproxen.",
+            ),
+            (
+                19,
+                "Shoulder improving with physical therapy; range of motion nearly full. Cleared for light ranch work, no roping for four more weeks.",
+            ),
+        ],
     },
     {
         "first_name": "Tex",
@@ -48,8 +75,27 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "B+",
         "status": "critical",
         "conditions": ["COPD", "Atrial fibrillation"],
+        "medications": [
+            "Tiotropium inhaler daily",
+            "Metoprolol 50 mg twice daily",
+            "Apixaban 5 mg twice daily",
+        ],
         "allergies": ["Sulfa drugs"],
         "last_visit_days_ago": 2,
+        "notes": [
+            (
+                30,
+                "More short of breath over two weeks. SpO2 91% on room air. Prednisone burst started and inhaler technique reviewed.",
+            ),
+            (
+                9,
+                "Palpitations. ECG shows atrial fibrillation, rate 112. Metoprolol increased; anticoagulation continued.",
+            ),
+            (
+                2,
+                "COPD flare not fully settled. Arranged a home oxygen assessment. Follow up in one week, sooner if breathing worsens.",
+            ),
+        ],
     },
     {
         "first_name": "Dusty",
@@ -62,8 +108,19 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "O-",
         "status": "active",
         "conditions": ["Asthma", "Seasonal allergic rhinitis (cedar fever)"],
+        "medications": [
+            "Fluticasone inhaler twice daily",
+            "Albuterol inhaler as needed",
+            "Cetirizine 10 mg daily",
+        ],
         "allergies": ["Mountain cedar pollen", "Dust mites"],
         "last_visit_days_ago": 31,
+        "notes": [
+            (
+                31,
+                "Cedar fever flare with wheeze. Peak flow 78% of personal best. Stepped up inhaled steroid and advised keeping windows shut on high-pollen days.",
+            ),
+        ],
     },
     {
         "first_name": "Annie",
@@ -76,6 +133,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "AB+",
         "status": "active",
         "conditions": [],
+        "medications": [],
         "allergies": ["Latex"],
         "last_visit_days_ago": 143,
     },
@@ -90,6 +148,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "A-",
         "status": "inactive",
         "conditions": ["Obstructive sleep apnea", "Hyperlipidemia"],
+        "medications": ["Atorvastatin 20 mg nightly"],
         "allergies": [],
         "last_visit_days_ago": 412,
     },
@@ -104,6 +163,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "B-",
         "status": "active",
         "conditions": ["Migraine without aura"],
+        "medications": ["Sumatriptan 50 mg as needed"],
         "allergies": ["Codeine"],
         "last_visit_days_ago": 24,
     },
@@ -118,6 +178,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "O+",
         "status": "active",
         "conditions": ["ACL reconstruction (right knee), 2023"],
+        "medications": [],
         "allergies": [],
         "last_visit_days_ago": 58,
     },
@@ -132,8 +193,19 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "A+",
         "status": "critical",
         "conditions": ["Congestive heart failure", "Chronic kidney disease (stage 3)"],
+        "medications": ["Furosemide 40 mg twice daily", "Carvedilol 6.25 mg twice daily"],
         "allergies": ["Iodinated contrast"],
         "last_visit_days_ago": 1,
+        "notes": [
+            (
+                14,
+                "Weight up 2 kg in a week with ankle swelling. Furosemide increased to 40 mg twice daily. Low-salt diet reviewed with her daughter.",
+            ),
+            (
+                1,
+                "Weight back to baseline and swelling resolved. Creatinine stable at 1.4. Continue current diuretic dose; recheck labs in two weeks.",
+            ),
+        ],
     },
     {
         "first_name": "Rusty",
@@ -146,6 +218,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "AB-",
         "status": "active",
         "conditions": ["Gastroesophageal reflux disease"],
+        "medications": ["Omeprazole 20 mg daily"],
         "allergies": ["Shellfish"],
         "last_visit_days_ago": 77,
     },
@@ -160,6 +233,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "O+",
         "status": "active",
         "conditions": ["Osteoarthritis (both knees)", "Hypothyroidism"],
+        "medications": ["Levothyroxine 75 mcg daily", "Acetaminophen 500 mg as needed"],
         "allergies": [],
         "last_visit_days_ago": 12,
     },
@@ -174,6 +248,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "B+",
         "status": "inactive",
         "conditions": ["Gout"],
+        "medications": ["Allopurinol 100 mg daily"],
         "allergies": ["Aspirin"],
         "last_visit_days_ago": 520,
     },
@@ -188,6 +263,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "A+",
         "status": "active",
         "conditions": [],
+        "medications": [],
         "allergies": [],
         "last_visit_days_ago": 95,
     },
@@ -202,8 +278,15 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "O+",
         "status": "active",
         "conditions": ["Asthma (mild intermittent)"],
+        "medications": ["Albuterol inhaler as needed", "Epinephrine auto-injector as needed"],
         "allergies": ["Peanuts"],
         "last_visit_days_ago": 40,
+        "notes": [
+            (
+                40,
+                "Well-child visit. Asthma well controlled, rescue inhaler used less than once a month. School action plan updated. Carries epinephrine for peanut allergy.",
+            ),
+        ],
     },
     {
         "first_name": "Cody",
@@ -216,8 +299,15 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "A-",
         "status": "active",
         "conditions": ["Lumbar strain"],
+        "medications": ["Ibuprofen 400 mg as needed"],
         "allergies": [],
         "last_visit_days_ago": 9,
+        "notes": [
+            (
+                9,
+                "Low back strain after loading hay bales. No red flags on exam. Advised heat, gentle stretching and a short course of ibuprofen.",
+            ),
+        ],
     },
     {
         "first_name": "Jolene",
@@ -230,6 +320,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "B+",
         "status": "active",
         "conditions": ["Type 2 diabetes", "Generalized anxiety disorder"],
+        "medications": ["Metformin 1000 mg twice daily", "Sertraline 50 mg daily"],
         "allergies": ["Lisinopril (cough)"],
         "last_visit_days_ago": 15,
     },
@@ -244,8 +335,23 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "O-",
         "status": "critical",
         "conditions": ["Coronary artery disease (stent placed 2025)", "Hypertension"],
+        "medications": [
+            "Aspirin 81 mg daily",
+            "Clopidogrel 75 mg daily",
+            "Atorvastatin 80 mg nightly",
+        ],
         "allergies": [],
         "last_visit_days_ago": 3,
+        "notes": [
+            (
+                45,
+                "Six-month check after stent placement. No chest pain on exertion. Taking aspirin, clopidogrel and atorvastatin as prescribed.",
+            ),
+            (
+                3,
+                "Chest tightness while mending fence, eased with rest. ECG unchanged. Urgent cardiology review arranged; told to call 911 if pain returns at rest.",
+            ),
+        ],
     },
     {
         "first_name": "Sadie",
@@ -258,6 +364,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "AB+",
         "status": "active",
         "conditions": ["Iron-deficiency anemia"],
+        "medications": ["Ferrous sulfate 325 mg daily"],
         "allergies": [],
         "last_visit_days_ago": 66,
     },
@@ -272,6 +379,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "A+",
         "status": "inactive",
         "conditions": ["Sensorineural hearing loss", "Benign prostatic hyperplasia"],
+        "medications": ["Tamsulosin 0.4 mg nightly"],
         "allergies": [],
         "last_visit_days_ago": 388,
     },
@@ -286,6 +394,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "O+",
         "status": "active",
         "conditions": ["Osteoporosis"],
+        "medications": ["Alendronate 70 mg weekly", "Calcium with vitamin D daily"],
         "allergies": ["Sulfa drugs"],
         "last_visit_days_ago": 28,
     },
@@ -300,8 +409,15 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "B-",
         "status": "active",
         "conditions": ["Concussion (junior rodeo), resolved"],
+        "medications": [],
         "allergies": [],
         "last_visit_days_ago": 110,
+        "notes": [
+            (
+                110,
+                "Follow-up after junior rodeo concussion. Symptom-free for two weeks. Cleared for a graded return to riding; helmet strongly recommended.",
+            ),
+        ],
     },
     {
         "first_name": "Doc",
@@ -314,6 +430,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "A+",
         "status": "active",
         "conditions": ["Hypertension"],
+        "medications": ["Amlodipine 5 mg daily"],
         "allergies": ["Bee and wasp venom"],
         "last_visit_days_ago": 47,
     },
@@ -328,6 +445,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "O+",
         "status": "active",
         "conditions": ["Gestational diabetes (2019), resolved"],
+        "medications": [],
         "allergies": ["Amoxicillin"],
         "last_visit_days_ago": 201,
     },
@@ -342,6 +460,7 @@ PATIENTS: list[dict[str, Any]] = [
         "blood_type": "AB+",
         "status": "inactive",
         "conditions": ["Chronic bronchitis", "Tobacco use disorder"],
+        "medications": ["Albuterol inhaler as needed"],
         "allergies": [],
         "last_visit_days_ago": 455,
     },
@@ -367,6 +486,13 @@ CONDITIONS = [
     "Hypertension", "Type 2 diabetes", "Hyperlipidemia", "Asthma", "Osteoarthritis",
     "Hypothyroidism", "Chronic low back pain", "Gastroesophageal reflux disease",
     "Migraine", "Seasonal allergic rhinitis (cedar fever)",
+]  # fmt: skip
+# The usual medication for each entry in CONDITIONS, in the same order.
+MEDICATIONS = [
+    "Lisinopril 10 mg daily", "Metformin 500 mg twice daily", "Atorvastatin 20 mg nightly",
+    "Albuterol inhaler as needed", "Acetaminophen 500 mg as needed",
+    "Levothyroxine 50 mcg daily", "Ibuprofen 400 mg as needed", "Omeprazole 20 mg daily",
+    "Sumatriptan 50 mg as needed", "Cetirizine 10 mg daily",
 ]  # fmt: skip
 ALLERGIES = ["Penicillin", "Sulfa drugs", "Latex", "Shellfish", "Peanuts", "Aspirin"]
 BLOOD_TYPES = ["O+", "A+", "B+", "O-", "A-", "AB+", "B-", "AB-"]
